@@ -198,7 +198,7 @@ h1, h2 {
     color: #007bff;
 }
 
-/* (新增) 开发者模式复选框样式 */
+/* 开发者模式复选框样式 */
 .controls .dev-mode {
     display: flex;
     align-items: center;
@@ -217,4 +217,18 @@ h1, h2 {
 }
 .controls .dev-mode input {
     cursor: pointer;
+}
+
+/* 计时器样式 */
+.stat .timer {
+    margin-top: 5px;
+    font-weight: bold;
+    color: #333;
+    transition: all 0.3s;
+}
+
+/* 时间快用完时高亮 */
+.stat .timer.timing-out {
+    color: #d9534f; /* 红色 */
+    transform: scale(1.1);
 }

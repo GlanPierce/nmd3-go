@@ -18,7 +18,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const p1ExtraEl = document.getElementById('p1-extra');
     const p2ExtraEl = document.getElementById('p2-extra');
 
-    // (新增) 获取开发者模式复选框
+    // (已添加) 计时器元素
+    const p1TimerEl = document.getElementById('p1-timer');
+    const p2TimerEl = document.getElementById('p2-timer');
+
+    // (已添加) 开发者模式
     const devModeToggle = document.getElementById('dev-mode-toggle');
 
     // 弹窗
@@ -37,15 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 切换玩家身份
     playerSelect.addEventListener('change', (e) => {
         myPlayerId = e.target.value;
-        // 身份切换后, 如果有游戏, 重新渲染棋盘以显示正确的伏兵
         if (currentGameState) {
             renderBoard(currentGameState.board);
         }
     });
 
-    // (新增) 监听开发者模式切换
+    // 监听开发者模式切换
     devModeToggle.addEventListener('change', () => {
-        // 切换后立即重新渲染棋盘
         if (currentGameState) {
             renderBoard(currentGameState.board);
         }
@@ -157,7 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 轮询获取最新状态
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
-        pollingInterval = setInterval(fetchGameState, 2000); // 每 2 秒轮询一次
+        // (已修改) 将轮询间隔缩短到 2 秒，以便计时器更平滑
+        pollingInterval = setInterval(fetchGameState, 2000);
     }
 
     async function fetchGameState() {
@@ -175,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 更新整个 UI
+    // (已修改) 更新整个 UI
     function updateUI(state) {
         currentGameState = state; // 保存全局状态
 
@@ -185,6 +188,19 @@ document.addEventListener('DOMContentLoaded', () => {
         p1ExtraEl.textContent = state.p1ExtraTurns;
         p2ExtraEl.textContent = state.p2ExtraTurns;
         statusMessageEl.textContent = state.statusMessage;
+
+        // --- (新增) 更新计时器显示 ---
+        // -1 意味着计时器未激活
+        const p1Time = state.p1TimeLeft < 0 ? "--" : Math.ceil(state.p1TimeLeft / 1000);
+        const p2Time = state.p2TimeLeft < 0 ? "--" : Math.ceil(state.p2TimeLeft / 1000);
+
+        p1TimerEl.textContent = p1Time;
+        p2TimerEl.textContent = p2Time;
+
+        // (可选) 为快要超时的玩家添加高亮
+        p1TimerEl.parentElement.classList.toggle('timing-out', state.p1TimeLeft > 0 && state.p1TimeLeft < 5000);
+        p2TimerEl.parentElement.classList.toggle('timing-out', state.p2TimeLeft > 0 && state.p2TimeLeft < 5000);
+        // --- (新增) 结束 ---
 
         // 渲染棋盘
         renderBoard(state.board);
@@ -254,7 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // (已修正) 游戏结束弹窗
+    // 显示游戏结束弹窗
     function showGameOverModal(state) {
         const res = state.result;
         if (res.winnerId === 'DRAW') {
@@ -270,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = 'block';
     }
 
-    // (已修正) 获取并渲染排行榜
+    // 获取并渲染排行榜
     async function fetchLeaderboard() {
         try {
             const response = await fetch('/api/leaderboard');

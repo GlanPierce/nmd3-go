@@ -15,13 +15,17 @@ public class Game {
     private String currentTurnPlayerId; // 当前轮到谁
     private GameResult result;
 
-    // (已修正) 使用计数器替代 pendingAmbushes
     private int p1AmbushesPlacedThisRound = 0;
     private int p2AmbushesPlacedThisRound = 0;
 
-    // 用于常规轮次落子
-    private String placementRoundStarter; // 本轮落子的先手
-    private int placementsMadeThisTurn; // 0-3
+    private String placementRoundStarter;
+    private int placementsMadeThisTurn;
+
+    // --- (新增) 计时器状态 ---
+    // Long.MAX_VALUE 意味着计时器被“解除” (disarmed)
+    private long p1ActionDeadline = Long.MAX_VALUE;
+    private long p2ActionDeadline = Long.MAX_VALUE;
+    // --- (新增) 结束 ---
 
     public Game(String p1Username, String p2Username) {
         this.gameId = UUID.randomUUID().toString().substring(0, 8);
@@ -30,8 +34,6 @@ public class Game {
         this.board = new Board();
         this.currentRound = 1;
         this.phase = GamePhase.AMBUSH;
-
-        // 随机先手
         this.firstMovePlayerId = Math.random() < 0.5 ? "p1" : "p2";
 
         resetForAmbushPhase();
@@ -39,9 +41,12 @@ public class Game {
 
     public void resetForAmbushPhase() {
         this.phase = GamePhase.AMBUSH;
-        // (已修正) 重置计数器
         this.p1AmbushesPlacedThisRound = 0;
         this.p2AmbushesPlacedThisRound = 0;
+
+        // --- (新增) 启动伏兵阶段的计时器 (15秒) ---
+        startTimer("p1", 15);
+        startTimer("p2", 15);
     }
 
     public String getOpponentId(String playerId) {
@@ -51,4 +56,23 @@ public class Game {
     public Player getPlayer(String playerId) {
         return playerId.equals("p1") ? p1 : p2;
     }
+
+    // --- (新增) 计时器辅助方法 ---
+    public void startTimer(String playerId, int seconds) {
+        long deadline = System.currentTimeMillis() + (seconds * 1000L);
+        if (playerId.equals("p1")) {
+            this.p1ActionDeadline = deadline;
+        } else {
+            this.p2ActionDeadline = deadline;
+        }
+    }
+
+    public void disarmTimer(String playerId) {
+        if (playerId.equals("p1")) {
+            this.p1ActionDeadline = Long.MAX_VALUE;
+        } else {
+            this.p2ActionDeadline = Long.MAX_VALUE;
+        }
+    }
+    // --- (新增) 结束 ---
 }
