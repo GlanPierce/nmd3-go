@@ -3,12 +3,12 @@ package com.example.ninjaattack.service;
 import com.example.ninjaattack.model.domain.*;
 import com.example.ninjaattack.model.dto.GameStateDTO;
 import com.example.ninjaattack.model.dto.MoveRequest;
-import org.springframework.scheduling.annotation.Scheduled; // (新增)
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList; // (新增)
-import java.util.Collections; // (新增)
-import java.util.List; // (新增)
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,14 +22,13 @@ public class GameService {
         this.userService = userService;
     }
 
-    // --- (新增) 核心：计划任务时钟 ---
+    // --- 核心：计划任务时钟 ---
     /**
      * 每秒钟检查一次所有活跃的游戏是否有超时。
      */
     @Scheduled(fixedRate = 1000)
     public void checkGameTimeouts() {
         long now = System.currentTimeMillis();
-        // 迭代 keySet 以安全地处理条目（尽管我们不在此处删除）
         for (String gameId : activeGames.keySet()) {
             Game game = activeGames.get(gameId);
             if (game == null || game.getPhase() == GamePhase.GAME_OVER) continue;
@@ -42,14 +41,14 @@ public class GameService {
             }
 
             if (timedOutPlayerId != null) {
-                // (新增) 处理超时
+                // 处理超时
                 handleTimeout(game, timedOutPlayerId);
             }
         }
     }
 
     /**
-     * (新增) 处理超时的核心逻辑。
+     * 处理超时的核心逻辑。
      * 必须是 synchronized，以防止与玩家的正常操作冲突。
      */
     private synchronized void handleTimeout(Game game, String timedOutPlayerId) {
@@ -67,7 +66,7 @@ public class GameService {
         if (game.getPhase() == GamePhase.AMBUSH) {
             int remaining = 2 - (timedOutPlayerId.equals("p1") ? game.getP1AmbushesPlacedThisRound() : game.getP2AmbushesPlacedThisRound());
             if (remaining > 0) {
-                // (新增) 规则：随机放置剩余的伏兵
+                // 规则：随机放置剩余的伏兵
                 performRandomAmbush(game, timedOutPlayerId, remaining);
             }
             // 检查是否双方都完成了（一个手动，一个超时）
@@ -76,20 +75,18 @@ public class GameService {
             }
         } else if (game.getPhase() == GamePhase.PLACEMENT) {
             if (timedOutPlayerId.equals(game.getCurrentTurnPlayerId())) {
-                // (新增) 规则：随机落子
+                // 规则：随机落子
                 performRandomPlacement(game, timedOutPlayerId);
             }
         } else if (game.getPhase() == GamePhase.EXTRA_ROUNDS) {
             if (timedOutPlayerId.equals(game.getCurrentTurnPlayerId())) {
-                // (新增) 规则：随机落子
+                // 规则：随机落子
                 performRandomExtraPlacement(game, timedOutPlayerId);
             }
         }
     }
-    // --- (新增) 计划任务结束 ---
 
-
-    // --- (新增) 随机移动的实现 ---
+    // --- 随机移动的实现 ---
 
     private void performRandomAmbush(Game game, String playerId, int count) {
         List<Point> spots = getValidAmbushSpots(game.getBoard(), playerId);
@@ -134,15 +131,17 @@ public class GameService {
             if (game.getCurrentTurnPlayerId().equals(game.getPlacementRoundStarter())) {
                 game.setCurrentTurnPlayerId(game.getOpponentId(game.getPlacementRoundStarter()));
                 game.setPlacementsMadeThisTurn(0);
+                // 启动下一位玩家的计时器
+                game.startTimer(game.getCurrentTurnPlayerId(), 15);
+                game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
             } else {
                 transitionToNextRound(game); // 这个方法会处理下一阶段的计时器
                 return; // 提前返回
             }
+        } else {
+            // 还在同一玩家的回合，重置计时器
+            game.startTimer(game.getCurrentTurnPlayerId(), 15);
         }
-
-        // 如果没有进入下一轮，则为下一个（或同一个）玩家启动计时器
-        game.startTimer(game.getCurrentTurnPlayerId(), 15);
-        game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
     }
 
     private void performRandomExtraPlacement(Game game, String playerId) {
@@ -179,7 +178,7 @@ public class GameService {
         game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
     }
 
-    // --- (新增) 随机移动的辅助方法 ---
+    // --- 随机移动的辅助方法 ---
     private List<Point> getValidPlacementSpots(Board board) {
         List<Point> spots = new ArrayList<>();
         for (int r = 0; r < 6; r++) {
@@ -202,6 +201,10 @@ public class GameService {
                 // 不能在对方伏兵上设置伏兵
                 if (playerId.equals("p1") && s.isP2Ambush()) continue;
                 if (playerId.equals("p2") && s.isP1Ambush()) continue;
+
+                // 不能在自己的伏兵上重复设置
+                if (playerId.equals("p1") && s.isP1Ambush()) continue;
+                if (playerId.equals("p2") && s.isP2Ambush()) continue;
 
                 spots.add(new Point(r, c));
             }
@@ -226,7 +229,6 @@ public class GameService {
 
     public synchronized GameStateDTO placeAmbush(String gameId, MoveRequest move) {
         Game game = findGame(gameId);
-        // ... (原有的验证逻辑不变) ...
         if (game.getPhase() != GamePhase.AMBUSH) throw new IllegalStateException("Not in AMBUSH phase");
         String playerId = move.getPlayerId();
         if (playerId.equals("p1")) {
@@ -239,23 +241,20 @@ public class GameService {
 
         if (playerId.equals("p1")) {
             if (square.isP2Ambush()) throw new IllegalStateException("Cannot place ambush on an opponent's ambush");
+            if (square.isP1Ambush()) throw new IllegalStateException("Cannot place ambush on your own ambush");
             square.setP1Ambush(true);
             game.setP1AmbushesPlacedThisRound(game.getP1AmbushesPlacedThisRound() + 1);
-            // (新增) 如果完成，解除计时器
             if(game.getP1AmbushesPlacedThisRound() == 2) game.disarmTimer("p1");
         } else {
             if (square.isP1Ambush()) throw new IllegalStateException("Cannot place ambush on an opponent's ambush");
+            if (square.isP2Ambush()) throw new IllegalStateException("Cannot place ambush on your own ambush");
             square.setP2Ambush(true);
             game.setP2AmbushesPlacedThisRound(game.getP2AmbushesPlacedThisRound() + 1);
-            // (新增) 如果完成，解除计时器
             if(game.getP2AmbushesPlacedThisRound() == 2) game.disarmTimer("p2");
         }
 
-        // 检查是否双方都完成了
         if (game.getP1AmbushesPlacedThisRound() == 2 &&
                 game.getP2AmbushesPlacedThisRound() == 2) {
-
-            // (新增) 计时器逻辑已在 transitionToPlacement 中处理
             transitionToPlacement(game);
         }
 
@@ -296,7 +295,7 @@ public class GameService {
         }
         game.setCurrentTurnPlayerId(game.getPlacementRoundStarter());
 
-        // (新增) 启动落子计时器
+        // 启动落子计时器
         game.startTimer(game.getCurrentTurnPlayerId(), 15);
         game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
     }
@@ -305,9 +304,9 @@ public class GameService {
         if (!game.getCurrentTurnPlayerId().equals(move.getPlayerId())) {
             throw new IllegalStateException("Not your turn");
         }
-        // (原有的伏兵触发逻辑不变) ...
         Square square = game.getBoard().getSquare(move.getR(), move.getC());
         if (square.getOwnerId() != null) throw new IllegalStateException("Square already occupied");
+
         if (square.hasAmbush()) {
             if (square.isP1Ambush()) game.getPlayer("p1").setExtraTurns(game.getPlayer("p1").getExtraTurns() + 1);
             if (square.isP2Ambush()) game.getPlayer("p2").setExtraTurns(game.getPlayer("p2").getExtraTurns() + 1);
@@ -317,22 +316,25 @@ public class GameService {
             square.setOwnerId(move.getPlayerId());
         }
 
-        // (原有的回合转换逻辑不变) ...
         game.setPlacementsMadeThisTurn(game.getPlacementsMadeThisTurn() + 1);
+
         if (game.getPlacementsMadeThisTurn() == 3) {
             if (game.getCurrentTurnPlayerId().equals(game.getPlacementRoundStarter())) {
+                // 轮到后手
                 game.setCurrentTurnPlayerId(game.getOpponentId(game.getPlacementRoundStarter()));
                 game.setPlacementsMadeThisTurn(0);
+                // 启动后手计时器
+                game.startTimer(game.getCurrentTurnPlayerId(), 15);
+                game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
             } else {
-                // (新增) 计时器逻辑在 transitionToNextRound 中处理
+                // 本轮结束
                 transitionToNextRound(game);
                 return mapToDTO(game); // 提前返回
             }
+        } else {
+            // 还在同一玩家的回合，重置计时器
+            game.startTimer(game.getCurrentTurnPlayerId(), 15);
         }
-
-        // (新增) 为下一个（或同一个）玩家启动计时器
-        game.startTimer(game.getCurrentTurnPlayerId(), 15);
-        game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
 
         return mapToDTO(game);
     }
@@ -342,7 +344,7 @@ public class GameService {
         if (game.getCurrentRound() > 4) {
             transitionToExtraRounds(game);
         } else {
-            // (新增) resetForAmbushPhase 会自动启动伏兵计时器
+            // resetForAmbushPhase 会自动启动伏兵计时器
             game.resetForAmbushPhase();
         }
     }
@@ -363,7 +365,7 @@ public class GameService {
             game.setCurrentTurnPlayerId(game.getFirstMovePlayerId());
         }
 
-        // (新增) 启动额外轮次计时器
+        // 启动额外轮次计时器
         game.startTimer(game.getCurrentTurnPlayerId(), 15);
         game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
     }
@@ -373,9 +375,9 @@ public class GameService {
         if (!game.getCurrentTurnPlayerId().equals(move.getPlayerId()) || mover.getExtraTurns() <= 0) {
             throw new IllegalStateException("Not your turn or no extra turns left");
         }
-        // (原有的伏兵触发逻辑不变) ...
         Square square = game.getBoard().getSquare(move.getR(), move.getC());
         if (square.getOwnerId() != null) throw new IllegalStateException("Square already occupied");
+
         if (square.hasAmbush()) {
             square.clearAmbushes();
             square.setOwnerId(null);
@@ -384,7 +386,6 @@ public class GameService {
         }
         mover.setExtraTurns(mover.getExtraTurns() - 1);
 
-        // (原有的回合转换逻辑不变) ...
         Player opponent = game.getPlayer(game.getOpponentId(move.getPlayerId()));
         if (opponent.getExtraTurns() > 0) {
             game.setCurrentTurnPlayerId(opponent.getId());
@@ -395,17 +396,16 @@ public class GameService {
             return mapToDTO(game); // 游戏结束，提前返回
         }
 
-        // (新增) 为下一位玩家启动计时器
+        // 为下一位玩家启动计时器
         game.startTimer(game.getCurrentTurnPlayerId(), 15);
         game.disarmTimer(game.getOpponentId(game.getCurrentTurnPlayerId()));
 
         return mapToDTO(game);
     }
 
-    // (endGame, calculateMaxConnection, dfs, countPieces 保持不变)
     private void endGame(Game game) {
         game.setPhase(GamePhase.GAME_OVER);
-        // (新增) 游戏结束，解除所有计时器
+        // 游戏结束，解除所有计时器
         game.disarmTimer("p1");
         game.disarmTimer("p2");
 
@@ -436,12 +436,50 @@ public class GameService {
             userService.applyGameResult(game.getP2().getUsername(), game.getP1().getUsername());
         }
     }
-    private int calculateMaxConnection(Board board, String playerId) { /* ... (不变) ... */ }
-    private int dfs(Board board, boolean[][] visited, int r, int c, String playerId) { /* ... (不变) ... */ }
-    private int countPieces(Board board, String playerId) { /* ... (不变) ... */ }
+
+    // --- 计分辅助方法 ---
+    private int calculateMaxConnection(Board board, String playerId) {
+        int max = 0;
+        boolean[][] visited = new boolean[6][6];
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 6; c++) {
+                if (playerId.equals(board.getSquare(r, c).getOwnerId()) && !visited[r][c]) {
+                    int size = dfs(board, visited, r, c, playerId);
+                    max = Math.max(max, size);
+                }
+            }
+        }
+        return max;
+    }
+
+    private int dfs(Board board, boolean[][] visited, int r, int c, String playerId) {
+        if (r < 0 || r >= 6 || c < 0 || c >= 6 || visited[r][c] || !playerId.equals(board.getSquare(r, c).getOwnerId())) {
+            return 0;
+        }
+        visited[r][c] = true;
+        int count = 1;
+        // 规则: 仅横向或竖向
+        count += dfs(board, visited, r + 1, c, playerId);
+        count += dfs(board, visited, r - 1, c, playerId);
+        count += dfs(board, visited, r, c + 1, playerId);
+        count += dfs(board, visited, r, c - 1, playerId);
+        return count;
+    }
+
+    private int countPieces(Board board, String playerId) {
+        int count = 0;
+        for (int r = 0; r < 6; r++) {
+            for (int c = 0; c < 6; c++) {
+                if (playerId.equals(board.getSquare(r, c).getOwnerId())) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
 
 
-    // --- DTO 映射 (已更新) ---
+    // --- DTO 映射 ---
     private GameStateDTO mapToDTO(Game game) {
         GameStateDTO dto = new GameStateDTO();
         dto.setGameId(game.getGameId());
@@ -462,17 +500,45 @@ public class GameService {
 
         dto.setStatusMessage(generateStatusMessage(game));
 
-        // --- (新增) 填充剩余时间 ---
+        // 填充剩余时间
         long now = System.currentTimeMillis();
         dto.setP1TimeLeft(game.getP1ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP1ActionDeadline() - now));
         dto.setP2TimeLeft(game.getP2ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP2ActionDeadline() - now));
-        // --- (新增) 结束 ---
 
         return dto;
     }
 
+    // --- 状态信息 ---
     private String generateStatusMessage(Game game) {
-        // ... (不变) ...
-        return "";
+        Player p1 = game.getP1();
+        Player p2 = game.getP2();
+        switch (game.getPhase()) {
+            case AMBUSH:
+                return String.format("第 %d 轮 - 伏兵阶段 (15秒). P1 (%s) 已设置 %d/2, P2 (%s) 已设置 %d/2.",
+                        game.getCurrentRound(), p1.getUsername(),
+                        game.getP1AmbushesPlacedThisRound(),
+                        p2.getUsername(),
+                        game.getP2AmbushesPlacedThisRound());
+            case PLACEMENT:
+                Player turnPlayer = game.getPlayer(game.getCurrentTurnPlayerId());
+                return String.format("第 %d 轮 - 落子阶段 (15秒). 轮到 %s (%s) 落子 (%d/3).",
+                        game.getCurrentRound(), turnPlayer.getId(), turnPlayer.getUsername(),
+                        game.getPlacementsMadeThisTurn() + 1);
+            case EXTRA_ROUNDS:
+                if (game.getCurrentTurnPlayerId() == null) return "额外轮次...准备中";
+                Player extraTurnPlayer = game.getPlayer(game.getCurrentTurnPlayerId());
+                return String.format("额外轮次 (15秒). 轮到 %s (%s). 剩余次数: P1[%d], P2[%d]",
+                        extraTurnPlayer.getId(), extraTurnPlayer.getUsername(),
+                        p1.getExtraTurns(), p2.getExtraTurns());
+            case GAME_OVER:
+                GameResult res = game.getResult();
+                if ("DRAW".equals(res.getWinnerId())) return "游戏结束: 平局!";
+                Player winner = game.getPlayer(res.getWinnerId());
+                return String.format("游戏结束! 胜利者: %s (%s). [P1: %d连/%d子, P2: %d连/%d子]",
+                        winner.getId(), winner.getUsername(), res.getP1MaxConnection(), res.getP1PieceCount(),
+                        res.getP2MaxConnection(), res.getP2PieceCount());
+            default:
+                return "等待中...";
+        }
     }
 }
