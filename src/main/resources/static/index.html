@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>忍者棋局</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<h1>忍者棋局</h1>
+
+<div class="game-container">
+    <div class="controls">
+        <div class="player-select">
+            <label>你的身份: </label>
+            <select id="player-select">
+                <option value="p1">玩家1 (NinjaA)</option>
+                <option value="p2">玩家2 (ShadowB)</option>
+            </select>
+        </div>
+        <button id="start-game-btn">开始新游戏 (P1: NinjaA, P2: ShadowB)</button>
+        <button id="refresh-btn">刷新状态</button>
+        <p><strong>游戏ID:</strong> <span id="game-id">N/A</span></p>
+
+        <div class="dev-mode">
+            <input type="checkbox" id="dev-mode-toggle">
+            <label for="dev-mode-toggle">开发者模式 (显示所有伏兵)</label>
+        </div>
+    </div>
+
+    <div id="game-info">
+        <div id="status-message">请开始新游戏</div>
+        <div class="player-stats">
+            <div class="stat p1">
+                <strong>P1: <span id="p1-name">...</span></strong>
+                <span>额外落子: <span id="p1-extra">0</span></span>
+            </div>
+            <div class="stat p2">
+                <strong>P2: <span id="p2-name">...</span></strong>
+                <span>额外落子: <span id="p2-extra">0</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div id="board" class="board-grid">
+    </div>
+
+    <div id="game-over-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>游戏结束!</h2>
+            <p id="winner-message"></p>
+            <p>P1 (NinjaA): <span id="p1-result"></span></p>
+            <p>P2 (ShadowB): <span id="p2-result"></span></p>
+            <button id="play-again-btn">再玩一局</button>
+        </div>
+    </div>
+</div>
+
+<div class="leaderboard-container">
+    <h2>排行榜</h2>
+    <button id="refresh-leaderboard-btn">刷新排行</button>
+    <ul id="leaderboard-list">
+    </ul>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
