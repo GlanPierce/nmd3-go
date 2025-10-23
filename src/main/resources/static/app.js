@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function startPolling() {
         if (pollingInterval) clearInterval(pollingInterval);
         // (已修改) 将轮询间隔缩短到 2 秒，以便计时器更平滑
-        pollingInterval = setInterval(fetchGameState, 2000);
+        pollingInterval = setInterval(fetchGameState, 1000);
     }
 
     async function fetchGameState() {
