@@ -29,10 +29,7 @@ public class GameService {
         this.taskScheduler = taskScheduler;
     }
 
-    // --- Core: Scheduled Clock Task ---
-    /**
-     * Every second, check all active games for timeouts.
-     */
+    // --- 核心：计划任务时钟 ---
     @Scheduled(fixedRate = 1000)
     public void checkGameTimeouts() {
         long now = System.currentTimeMillis();
@@ -48,9 +45,7 @@ public class GameService {
             }
 
             if (timedOutPlayerId != null) {
-                // Handle the timeout
                 handleTimeout(game, timedOutPlayerId);
-                // Immediately broadcast the updated state after the timeout action
                 if (game.getPhase() != GamePhase.GAME_OVER) {
                     broadcastGameState(game.getGameId());
                 }
@@ -59,61 +54,52 @@ public class GameService {
     }
 
     /**
-     * Broadcasts the current game state to all subscribed clients for a specific game.
+     * 广播游戏状态
      */
     public void broadcastGameState(String gameId) {
         Game game = findGame(gameId);
-        if (game == null) return; // Game might have ended and been removed
+        if (game == null) return;
 
         GameStateDTO dto = mapToDTO(game);
-
-        // Send to the topic /topic/game/{gameId}
         messagingTemplate.convertAndSend("/topic/game/" + gameId, dto);
     }
 
-    // --- Core Game APIs ---
+    // --- 核心游戏 API ---
 
     /**
-     * Creates a new game. This is the only REST API endpoint.
-     * It puts the game in a PRE_GAME state and schedules the actual start.
+     * 创建游戏 (REST API)
      */
     public synchronized GameStateDTO createGame(String p1Username, String p2Username) {
-        Game game = new Game(p1Username, p2Username); // Game starts in PRE_GAME phase
+        Game game = new Game(p1Username, p2Username);
         activeGames.put(game.getGameId(), game);
 
-        // Schedule a task to start the game after a 3-second delay
         taskScheduler.schedule(
                 () -> startGame(game.getGameId()),
                 Instant.now().plusSeconds(3)
         );
 
-        // Immediately return the PRE_GAME state to the client
         return mapToDTO(game);
     }
 
     /**
-     * Called by the TaskScheduler 3 seconds after creation.
-     * Transitions the game to the AMBUSH phase and starts the timers.
+     * 3秒后开始游戏 (由 TaskScheduler 调用)
      */
     public synchronized void startGame(String gameId) {
         Game game = findGame(gameId);
         if (game == null || game.getPhase() != GamePhase.PRE_GAME) {
-            return; // Game already started or no longer exists
+            return;
         }
 
-        // Transition to the Ambush phase
         game.resetForAmbushPhase();
 
-        // Start the timers for the Ambush phase
         game.startTimer("p1", 15);
         game.startTimer("p2", 15);
 
-        // Broadcast that the AMBUSH phase has begun
         broadcastGameState(gameId);
     }
 
     /**
-     * Handles an ambush placement request from a client via WebSocket.
+     * (已修复) 处理伏兵放置 (WebSocket)
      */
     public synchronized void placeAmbush(String gameId, MoveRequest move) {
         Game game = findGame(gameId);
@@ -127,17 +113,20 @@ public class GameService {
         }
 
         Square square = game.getBoard().getSquare(move.getR(), move.getC());
+
+        // 唯一检查：不能放在已有的 *棋子* 上
         if (square.getOwnerId() != null) throw new IllegalStateException("Cannot place ambush on occupied square");
 
+        // (已修复) 移除所有错误的伏兵叠加检查
         if (playerId.equals("p1")) {
-            if (square.isP2Ambush()) throw new IllegalStateException("Cannot place ambush on an opponent's ambush");
-            if (square.isP1Ambush()) throw new IllegalStateException("Cannot place ambush on your own ambush");
+            // if (square.isP2Ambush()) ... (已移除)
+            // if (square.isP1Ambush()) ... (已移除)
             square.setP1Ambush(true);
             game.setP1AmbushesPlacedThisRound(game.getP1AmbushesPlacedThisRound() + 1);
             if (game.getP1AmbushesPlacedThisRound() == 2) game.disarmTimer("p1");
         } else {
-            if (square.isP1Ambush()) throw new IllegalStateException("Cannot place ambush on an opponent's ambush");
-            if (square.isP2Ambush()) throw new IllegalStateException("Cannot place ambush on your own ambush");
+            // if (square.isP1Ambush()) ... (已移除)
+            // if (square.isP2Ambush()) ... (已移除)
             square.setP2Ambush(true);
             game.setP2AmbushesPlacedThisRound(game.getP2AmbushesPlacedThisRound() + 1);
             if (game.getP2AmbushesPlacedThisRound() == 2) game.disarmTimer("p2");
@@ -151,7 +140,7 @@ public class GameService {
     }
 
     /**
-     * Handles a piece placement request from a client via WebSocket.
+     * 处理落子 (WebSocket)
      */
     public synchronized void placePiece(String gameId, MoveRequest move) {
         Game game = findGame(gameId);
@@ -164,13 +153,12 @@ public class GameService {
             throw new IllegalStateException("Not in a placement phase");
         }
 
-        // Broadcast state unless the game just ended (endGame handles its own broadcast)
         if (game.getPhase() != GamePhase.GAME_OVER) {
             broadcastGameState(gameId);
         }
     }
 
-    // --- Timeout and Random Move Logic ---
+    // --- 超时和随机移动逻辑 ---
 
     private synchronized void handleTimeout(Game game, String timedOutPlayerId) {
         long now = System.currentTimeMillis();
@@ -222,6 +210,9 @@ public class GameService {
     private void performRandomPlacement(Game game, String playerId) {
         List<Point> spots = getValidPlacementSpots(game.getBoard());
         if (spots.isEmpty()) { endGame(game); return; }
+
+        // (修复) 随机选择一个点
+        Collections.shuffle(spots);
         Point spot = spots.get(0);
 
         Square square = game.getBoard().getSquare(spot.r(), spot.c());
@@ -251,6 +242,9 @@ public class GameService {
     private void performRandomExtraPlacement(Game game, String playerId) {
         List<Point> spots = getValidPlacementSpots(game.getBoard());
         if (spots.isEmpty()) { endGame(game); return; }
+
+        // (修复) 随机选择一个点
+        Collections.shuffle(spots);
         Point spot = spots.get(0);
 
         Square square = game.getBoard().getSquare(spot.r(), spot.c());
@@ -289,14 +283,25 @@ public class GameService {
         return spots;
     }
 
+    /**
+     * (已修复) 获取有效的伏兵点（现在只排除有棋子的点）
+     */
     private List<Point> getValidAmbushSpots(Board board, String playerId) {
         List<Point> spots = new ArrayList<>();
         for (int r = 0; r < 6; r++) {
             for (int c = 0; c < 6; c++) {
                 Square s = board.getSquare(r, c);
-                if (s.getOwnerId() != null || (playerId.equals("p1") && s.isP2Ambush()) || (playerId.equals("p2") && s.isP1Ambush()) || (playerId.equals("p1") && s.isP1Ambush()) || (playerId.equals("p2") && s.isP2Ambush())) {
+                // 唯一检查：不能放在已有的 *棋子* 上
+                if (s.getOwnerId() != null) {
                     continue;
                 }
+
+                // (已修复) 移除所有错误的伏兵叠加检查
+                // if (playerId.equals("p1") && s.isP2Ambush()) ... (已移除)
+                // if (playerId.equals("p2") && s.isP1Ambush()) ... (已移除)
+                // if (playerId.equals("p1") && s.isP1Ambush()) ... (已移除)
+                // if (playerId.equals("p2") && s.isP2Ambush()) ... (已移除)
+
                 spots.add(new Point(r, c));
             }
         }
@@ -304,7 +309,7 @@ public class GameService {
     }
 
 
-    // --- Internal Game Logic and State Transitions ---
+    // --- 内部游戏逻辑和状态转换 ---
 
     private Game findGame(String gameId) {
         Game game = activeGames.get(gameId);
@@ -341,6 +346,8 @@ public class GameService {
             if (square.isP1Ambush()) game.getPlayer("p1").setExtraTurns(game.getPlayer("p1").getExtraTurns() + 1);
             if (square.isP2Ambush()) game.getPlayer("p2").setExtraTurns(game.getPlayer("p2").getExtraTurns() + 1);
             square.clearAmbushes();
+            // (修复) 确保落子失效
+            square.setOwnerId(null);
         } else {
             square.setOwnerId(move.getPlayerId());
         }
@@ -402,6 +409,8 @@ public class GameService {
 
         if (square.hasAmbush()) {
             square.clearAmbushes();
+            // (修复) 确保落子失效
+            square.setOwnerId(null);
         } else {
             square.setOwnerId(move.getPlayerId());
         }
@@ -456,7 +465,7 @@ public class GameService {
         broadcastGameState(game.getGameId());
     }
 
-    // --- Scoring and Helper Methods ---
+    // --- 计分和辅助方法 ---
     private int calculateMaxConnection(Board board, String playerId) {
         int max = 0;
         boolean[][] visited = new boolean[6][6];
@@ -497,7 +506,7 @@ public class GameService {
     }
 
 
-    // --- DTO Mapping ---
+    // --- DTO 映射 ---
     private GameStateDTO mapToDTO(Game game) {
         GameStateDTO dto = new GameStateDTO();
         dto.setGameId(game.getGameId());
