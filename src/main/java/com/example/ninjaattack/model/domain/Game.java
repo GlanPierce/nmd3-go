@@ -33,10 +33,11 @@ public class Game {
         this.p2 = new Player("p2", p2Username);
         this.board = new Board();
         this.currentRound = 1;
-        this.phase = GamePhase.AMBUSH;
+        this.phase = GamePhase.PRE_GAME;
         this.firstMovePlayerId = Math.random() < 0.5 ? "p1" : "p2";
 
-        resetForAmbushPhase();
+        // (删除) 不再在这里开始伏兵阶段
+        // resetForAmbushPhase();
     }
 
     public void resetForAmbushPhase() {
@@ -44,9 +45,9 @@ public class Game {
         this.p1AmbushesPlacedThisRound = 0;
         this.p2AmbushesPlacedThisRound = 0;
 
-        // --- (新增) 启动伏兵阶段的计时器 (15秒) ---
-        startTimer("p1", 15);
-        startTimer("p2", 15);
+        // (删除) 计时器将由 GameService 在转换阶段时启动
+        // startTimer("p1", 15);
+        // startTimer("p2", 15);
     }
 
     public String getOpponentId(String playerId) {

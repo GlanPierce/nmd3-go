@@ -19,7 +19,7 @@
             </select>
         </div>
         <button id="start-game-btn">开始新游戏 (P1: NinjaA, P2: ShadowB)</button>
-        <button id="refresh-btn">刷新状态</button>
+        <button id="refresh-btn">刷新状态(重连)</button>
         <p><strong>游戏ID:</strong> <span id="game-id">N/A</span></p>
 
         <div class="dev-mode">
@@ -64,6 +64,9 @@
     <ul id="leaderboard-list">
     </ul>
 </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
 <script src="app.js"></script>
 </body>

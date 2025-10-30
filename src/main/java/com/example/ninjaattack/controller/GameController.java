@@ -1,7 +1,7 @@
 package com.example.ninjaattack.controller;
 
 import com.example.ninjaattack.model.dto.GameStateDTO;
-import com.example.ninjaattack.model.dto.MoveRequest;
+// (已删除) import com.example.ninjaattack.model.dto.MoveRequest;
 import com.example.ninjaattack.service.GameService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +16,10 @@ public class GameController {
         this.gameService = gameService;
     }
 
+    /**
+     * "开始游戏" 仍然是唯一需要的 RESTful API。
+     * 客户端调用这个 API 来创建游戏，并获取初始的游戏状态和 GameId。
+     */
     @PostMapping("/start")
     public ResponseEntity<?> createGame(@RequestParam String p1, @RequestParam String p2) {
         try {
@@ -26,28 +30,13 @@ public class GameController {
         }
     }
 
-    @GetMapping("/{gameId}/state")
-    public ResponseEntity<GameStateDTO> getGameState(@PathVariable String gameId) {
-        return ResponseEntity.ok(gameService.getGameState(gameId));
-    }
+    // --- (已删除) ---
+    // 以下方法已作废，因为它们现在由 GameSocketController 和 WebSocket 处理
 
-    @PostMapping("/{gameId}/ambush")
-    public ResponseEntity<?> placeAmbush(@PathVariable String gameId, @RequestBody MoveRequest move) {
-        try {
-            GameStateDTO gameState = gameService.placeAmbush(gameId, move);
-            return ResponseEntity.ok(gameState);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
+    // (已删除) @GetMapping("/{gameId}/state") ...
 
-    @PostMapping("/{gameId}/place")
-    public ResponseEntity<?> placePiece(@PathVariable String gameId, @RequestBody MoveRequest move) {
-        try {
-            GameStateDTO gameState = gameService.placePiece(gameId, move);
-            return ResponseEntity.ok(gameState);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
+    // (已删除) @PostMapping("/{gameId}/ambush") ...
+
+    // (已删除) @PostMapping("/{gameId}/place") ...
+
 }
