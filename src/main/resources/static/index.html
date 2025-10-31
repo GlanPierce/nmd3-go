@@ -63,10 +63,8 @@
                 <input type="checkbox" id="dev-mode-toggle">
                 <label for="dev-mode-toggle">开发者模式 (显示所有伏兵)</label>
             </div>
-
             <p><strong>你的身份:</strong> <span id="my-identity">N/A</span></p>
         </div>
-
         <div id="game-info">
             <div id="status-message">等待对手连接...</div>
             <div class="player-stats">
@@ -82,7 +80,6 @@
                 </div>
             </div>
         </div>
-
         <div id="board" class="board-grid"></div>
 
         <div id="game-over-modal" class="modal" style="display: none;">
@@ -102,9 +99,20 @@
         <ul id="leaderboard-list">
         </ul>
     </div>
-</div> <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+</div> <div id="match-found-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h2>找到对手！</h2>
+        <p>已为您匹配到对手: <strong id="match-opponent-name">...</strong></p>
+        <p>请在 <strong id="match-confirm-timer">30</strong> 秒内点击准备！</p>
+        <button id="match-ready-btn">准备</button>
+        <p id="match-status-message"></p>
+    </div>
+</div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
-<script src="app.js"></script>
+<script src="main.js" type="module"></script>
 </body>
 </html>

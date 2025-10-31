@@ -8,11 +8,12 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -23,38 +24,77 @@ public class GameService {
     private final SimpMessagingTemplate messagingTemplate;
     private final TaskScheduler taskScheduler;
 
+    private final Map<String, Set<String>> readyPlayersByGame = new ConcurrentHashMap<>();
+
     public GameService(UserService userService, SimpMessagingTemplate messagingTemplate, TaskScheduler taskScheduler) {
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
         this.taskScheduler = taskScheduler;
     }
 
-    // --- 核心：计划任务时钟 ---
+    // --- 核心：计划任务时钟 (不变) ---
     @Scheduled(fixedRate = 1000)
     public void checkGameTimeouts() {
         long now = System.currentTimeMillis();
         for (String gameId : activeGames.keySet()) {
             Game game = activeGames.get(gameId);
-            if (game == null || game.getPhase() == GamePhase.GAME_OVER) continue;
+            if (game == null) continue;
 
-            String timedOutPlayerId = null;
-            if (now > game.getP1ActionDeadline()) {
-                timedOutPlayerId = "p1";
-            } else if (now > game.getP2ActionDeadline()) {
-                timedOutPlayerId = "p2";
+            // 检查 30 秒的“匹配确认”超时
+            if (game.getPhase() == GamePhase.PRE_GAME && now > game.getConfirmationDeadline()) {
+                System.out.println("游戏 " + gameId + " 匹配确认超时。");
+                handleMatchTimeout(game);
             }
+            // 检查 15 秒的“游戏回合”超时
+            else if (game.getPhase() != GamePhase.PRE_GAME && game.getPhase() != GamePhase.GAME_OVER) {
+                String timedOutPlayerId = null;
+                if (now > game.getP1ActionDeadline()) {
+                    timedOutPlayerId = "p1";
+                } else if (now > game.getP2ActionDeadline()) {
+                    timedOutPlayerId = "p2";
+                }
 
-            if (timedOutPlayerId != null) {
-                handleTimeout(game, timedOutPlayerId);
-                if (game.getPhase() != GamePhase.GAME_OVER) {
-                    broadcastGameState(game.getGameId());
+                if (timedOutPlayerId != null) {
+                    handleTimeout(game, timedOutPlayerId);
+                    if (game.getPhase() != GamePhase.GAME_OVER) {
+                        broadcastGameState(game.getGameId());
+                    }
                 }
             }
         }
     }
 
     /**
-     * 广播游戏状态
+     * (新增) 处理 30 秒匹配确认超时
+     */
+    private synchronized void handleMatchTimeout(Game game) {
+        // 广播取消消息
+        broadcastGameState(game.getGameId(), GamePhase.MATCH_CANCELLED, "有玩家未能在30秒内确认准备。");
+        // 清理游戏
+        cleanupGame(game.getGameId());
+    }
+
+    /**
+     * (新增) 广播一个特定的状态 (用于 PRE_GAME 和 MATCH_CANCELLED)
+     */
+    public void broadcastGameState(String gameId, GamePhase phase, String message) {
+        Game game = findGame(gameId);
+        if (game == null) return;
+
+        GameStateDTO dto = new GameStateDTO();
+        dto.setGameId(gameId);
+        dto.setPhase(phase);
+        dto.setStatusMessage(message);
+
+        // (新增) 关键修复：发送 P1 和 P2 的用户名
+        dto.setP1Username(game.getP1().getUsername());
+        dto.setP2Username(game.getP2().getUsername());
+
+        messagingTemplate.convertAndSend("/topic/game/" + gameId, dto);
+    }
+
+    /**
+     * (不变) 广播当前游戏状态
      */
     public void broadcastGameState(String gameId) {
         Game game = findGame(gameId);
@@ -64,25 +104,61 @@ public class GameService {
         messagingTemplate.convertAndSend("/topic/game/" + gameId, dto);
     }
 
+    /**
+     * (新增) 封装的游戏清理逻辑
+     */
+    private void cleanupGame(String gameId) {
+        activeGames.remove(gameId);
+        readyPlayersByGame.remove(gameId);
+    }
+
     // --- 核心游戏 API ---
 
     /**
-     * 创建游戏 (REST API)
+     * (不变) createGame 现在设置 30 秒确认计时器
      */
-    public synchronized GameStateDTO createGame(String p1Username, String p2Username) {
-        Game game = new Game(p1Username, p2Username);
+    public synchronized Game createGame(String p1Username, String p2Username) {
+        Game game = new Game(p1Username, p2Username); // 处于 PRE_GAME
+
+        game.setConfirmationDeadline(System.currentTimeMillis() + 30000L);
+
         activeGames.put(game.getGameId(), game);
+        readyPlayersByGame.put(game.getGameId(), new HashSet<>());
 
-        taskScheduler.schedule(
-                () -> startGame(game.getGameId()),
-                Instant.now().plusSeconds(3)
-        );
-
-        return mapToDTO(game);
+        return game; // 返回 Game 对象
     }
 
     /**
-     * 3秒后开始游戏 (由 TaskScheduler 调用)
+     * (修改) 玩家点击“准备”后调用
+     */
+    public synchronized void playerReady(String gameId, String playerId) {
+        Game game = findGame(gameId);
+        if (game == null || game.getPhase() != GamePhase.PRE_GAME) {
+            return;
+        }
+
+        Set<String> readyPlayers = readyPlayersByGame.get(gameId);
+        if (readyPlayers == null) return;
+
+        readyPlayers.add(playerId);
+        System.out.println("玩家 " + playerId + " 已准备 (游戏: " + gameId + ")");
+
+        // (修改) 使用新的广播方法，发送当前玩家的准备状态
+        // 关键：发送的消息体是 "玩家 p1 已准备!"，前端负责将 p1 替换成用户名
+        broadcastGameState(game.getGameId(), GamePhase.PRE_GAME, "玩家 " + playerId + " 已准备!");
+
+        if (readyPlayers.contains("p1") && readyPlayers.contains("p2")) {
+            System.out.println("双方准备就绪, 游戏 " + gameId + " 开始!");
+
+            game.setConfirmationDeadline(Long.MAX_VALUE);
+
+            startGame(gameId);
+        }
+    }
+
+
+    /**
+     * (不变) 游戏正式开始
      */
     public synchronized void startGame(String gameId) {
         Game game = findGame(gameId);
@@ -91,15 +167,15 @@ public class GameService {
         }
 
         game.resetForAmbushPhase();
-
         game.startTimer("p1", 15);
         game.startTimer("p2", 15);
 
         broadcastGameState(gameId);
     }
 
+
     /**
-     * (已修复) 处理伏兵放置 (WebSocket)
+     * (不变) 处理伏兵放置 (WebSocket)
      */
     public synchronized void placeAmbush(String gameId, MoveRequest move) {
         Game game = findGame(gameId);
@@ -114,19 +190,13 @@ public class GameService {
 
         Square square = game.getBoard().getSquare(move.getR(), move.getC());
 
-        // 唯一检查：不能放在已有的 *棋子* 上
         if (square.getOwnerId() != null) throw new IllegalStateException("Cannot place ambush on occupied square");
 
-        // (已修复) 移除所有错误的伏兵叠加检查
         if (playerId.equals("p1")) {
-            // if (square.isP2Ambush()) ... (已移除)
-            // if (square.isP1Ambush()) ... (已移除)
             square.setP1Ambush(true);
             game.setP1AmbushesPlacedThisRound(game.getP1AmbushesPlacedThisRound() + 1);
             if (game.getP1AmbushesPlacedThisRound() == 2) game.disarmTimer("p1");
         } else {
-            // if (square.isP1Ambush()) ... (已移除)
-            // if (square.isP2Ambush()) ... (已移除)
             square.setP2Ambush(true);
             game.setP2AmbushesPlacedThisRound(game.getP2AmbushesPlacedThisRound() + 1);
             if (game.getP2AmbushesPlacedThisRound() == 2) game.disarmTimer("p2");
@@ -140,7 +210,7 @@ public class GameService {
     }
 
     /**
-     * 处理落子 (WebSocket)
+     * (不变) 处理落子 (WebSocket)
      */
     public synchronized void placePiece(String gameId, MoveRequest move) {
         Game game = findGame(gameId);
@@ -158,7 +228,7 @@ public class GameService {
         }
     }
 
-    // --- 超时和随机移动逻辑 ---
+    // --- 超时和随机移动逻辑 (不变) ---
 
     private synchronized void handleTimeout(Game game, String timedOutPlayerId) {
         long now = System.currentTimeMillis();
@@ -211,7 +281,6 @@ public class GameService {
         List<Point> spots = getValidPlacementSpots(game.getBoard());
         if (spots.isEmpty()) { endGame(game); return; }
 
-        // (修复) 随机选择一个点
         Collections.shuffle(spots);
         Point spot = spots.get(0);
 
@@ -220,6 +289,7 @@ public class GameService {
             if (square.isP1Ambush()) game.getPlayer("p1").setExtraTurns(game.getPlayer("p1").getExtraTurns() + 1);
             if (square.isP2Ambush()) game.getPlayer("p2").setExtraTurns(game.getPlayer("p2").getExtraTurns() + 1);
             square.clearAmbushes();
+            square.setOwnerId(null);
         } else {
             square.setOwnerId(playerId);
         }
@@ -243,13 +313,13 @@ public class GameService {
         List<Point> spots = getValidPlacementSpots(game.getBoard());
         if (spots.isEmpty()) { endGame(game); return; }
 
-        // (修复) 随机选择一个点
         Collections.shuffle(spots);
         Point spot = spots.get(0);
 
         Square square = game.getBoard().getSquare(spot.r(), spot.c());
         if (square.hasAmbush()) {
             square.clearAmbushes();
+            square.setOwnerId(null);
         } else {
             square.setOwnerId(playerId);
         }
@@ -283,25 +353,14 @@ public class GameService {
         return spots;
     }
 
-    /**
-     * (已修复) 获取有效的伏兵点（现在只排除有棋子的点）
-     */
     private List<Point> getValidAmbushSpots(Board board, String playerId) {
         List<Point> spots = new ArrayList<>();
         for (int r = 0; r < 6; r++) {
             for (int c = 0; c < 6; c++) {
                 Square s = board.getSquare(r, c);
-                // 唯一检查：不能放在已有的 *棋子* 上
                 if (s.getOwnerId() != null) {
                     continue;
                 }
-
-                // (已修复) 移除所有错误的伏兵叠加检查
-                // if (playerId.equals("p1") && s.isP2Ambush()) ... (已移除)
-                // if (playerId.equals("p2") && s.isP1Ambush()) ... (已移除)
-                // if (playerId.equals("p1") && s.isP1Ambush()) ... (已移除)
-                // if (playerId.equals("p2") && s.isP2Ambush()) ... (已移除)
-
                 spots.add(new Point(r, c));
             }
         }
@@ -309,12 +368,12 @@ public class GameService {
     }
 
 
-    // --- 内部游戏逻辑和状态转换 ---
+    // --- 内部游戏逻辑和状态转换 (不变) ---
 
     private Game findGame(String gameId) {
         Game game = activeGames.get(gameId);
         if (game == null) {
-            throw new IllegalArgumentException("Game not found: " + gameId);
+            return null;
         }
         return game;
     }
@@ -346,7 +405,6 @@ public class GameService {
             if (square.isP1Ambush()) game.getPlayer("p1").setExtraTurns(game.getPlayer("p1").getExtraTurns() + 1);
             if (square.isP2Ambush()) game.getPlayer("p2").setExtraTurns(game.getPlayer("p2").getExtraTurns() + 1);
             square.clearAmbushes();
-            // (修复) 确保落子失效
             square.setOwnerId(null);
         } else {
             square.setOwnerId(move.getPlayerId());
@@ -409,7 +467,6 @@ public class GameService {
 
         if (square.hasAmbush()) {
             square.clearAmbushes();
-            // (修复) 确保落子失效
             square.setOwnerId(null);
         } else {
             square.setOwnerId(move.getPlayerId());
@@ -463,9 +520,11 @@ public class GameService {
         }
 
         broadcastGameState(game.getGameId());
+
+        cleanupGame(game.getGameId());
     }
 
-    // --- 计分和辅助方法 ---
+    // --- 计分和辅助方法 (不变) ---
     private int calculateMaxConnection(Board board, String playerId) {
         int max = 0;
         boolean[][] visited = new boolean[6][6];
@@ -506,7 +565,7 @@ public class GameService {
     }
 
 
-    // --- DTO 映射 ---
+    // --- DTO 映射 (不变) ---
     private GameStateDTO mapToDTO(Game game) {
         GameStateDTO dto = new GameStateDTO();
         dto.setGameId(game.getGameId());
@@ -528,18 +587,26 @@ public class GameService {
         dto.setStatusMessage(generateStatusMessage(game));
 
         long now = System.currentTimeMillis();
-        dto.setP1TimeLeft(game.getP1ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP1ActionDeadline() - now));
-        dto.setP2TimeLeft(game.getP2ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP2ActionDeadline() - now));
+        // (修改) 检查游戏阶段，只在 PRE_GAME 阶段发送确认倒计时
+        if (game.getPhase() == GamePhase.PRE_GAME) {
+            long timeLeft = game.getConfirmationDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getConfirmationDeadline() - now);
+            dto.setP1TimeLeft(timeLeft); // 双方共享30秒倒计时
+            dto.setP2TimeLeft(timeLeft);
+        } else {
+            dto.setP1TimeLeft(game.getP1ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP1ActionDeadline() - now));
+            dto.setP2TimeLeft(game.getP2ActionDeadline() == Long.MAX_VALUE ? -1 : Math.max(0, game.getP2ActionDeadline() - now));
+        }
 
         return dto;
     }
 
+    // --- 状态信息 (不变) ---
     private String generateStatusMessage(Game game) {
         Player p1 = game.getP1();
         Player p2 = game.getP2();
         switch (game.getPhase()) {
             case PRE_GAME:
-                return "游戏即将开始... 准备！";
+                return "等待玩家准备...";
             case AMBUSH:
                 return String.format("第 %d 轮 - 伏兵阶段 (15秒). P1 (%s) 已设置 %d/2, P2 (%s) 已设置 %d/2.",
                         game.getCurrentRound(), p1.getUsername(),
@@ -564,6 +631,8 @@ public class GameService {
                 return String.format("游戏结束! 胜利者: %s (%s). [P1: %d连/%d子, P2: %d连/%d子]",
                         winner.getId(), winner.getUsername(), res.getP1MaxConnection(), res.getP1PieceCount(),
                         res.getP2MaxConnection(), res.getP2PieceCount());
+            case MATCH_CANCELLED:
+                return "匹配已取消。";
             default:
                 return "等待中...";
         }

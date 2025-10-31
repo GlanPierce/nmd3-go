@@ -17,32 +17,19 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 
 @Configuration
-@EnableWebSecurity // 启用 Spring Web Security
+@EnableWebSecurity
 public class SecurityConfig {
 
-    /**
-     * 1. 定义密码加密器 (PasswordEncoder)
-     * 我们使用 BCrypt，这是当前的行业标准。
-     */
+    // --- 认证相关的 Bean (不变) ---
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-
-    /**
-     * 2. 定义 UserDetailsService
-     * 告诉 Spring Security 如何加载用户数据。
-     * 它将调用我们稍后在 UserService 中实现的 loadUserByUsername 方法。
-     */
     @Bean
     public UserDetailsService userDetailsService(UserService userService) {
         return userService;
     }
-
-    /**
-     * 3. 定义 AuthenticationProvider (认证提供者)
-     * 将 UserDetailsService (加载用户) 和 PasswordEncoder (加密器) 绑定在一起。
-     */
     @Bean
     public AuthenticationProvider authenticationProvider(UserService userService) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -50,53 +37,55 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
-
-    /**
-     * 4. 定义 AuthenticationManager (认证管理器)
-     * 这是处理“登录”请求的核心组件，我们将"登录"API中注入它。
-     */
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
+
     /**
-     * 5. (最重要) 配置 HTTP 安全规则 (SecurityFilterChain)
-     * 定义哪些 URL 需要登录，哪些可以公开访问。
+     * 配置 HTTP 安全规则 (SecurityFilterChain)
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 禁用 CSRF 保护 (简单起见，方便前端)
                 .csrf(AbstractHttpConfigurer::disable)
 
                 // 定义哪些 URL 需要/不需要登录
                 .authorizeHttpRequests(auth -> auth
-                        // 允许所有人(permitAll)访问：
                         .requestMatchers(
-                                "/", "/index.html", "/*.css", "/*.js", // 静态主页和资源
-                                "/*.js.map", "/*.ico", // 其他静态资源
-                                "/ws/**", // WebSocket 连接点
-                                "/api/auth/register", // 我们的注册 API
-                                "/api/auth/login",  // 我们的登录 API
-                                "/api/leaderboard"  // 排行榜
+                                // 静态资源和公共 API 必须放行
+                                "/",
+                                "/index.html",
+                                "/style.css",
+                                "/main.js",
+                                "/api.js",
+                                "/ui.js",
+                                "/lobby.js",
+                                "/game.js",
+                                "/*.js.map",
+                                "/*.ico",
+                                "/ws/**", // WebSocket 连接握手
+                                "/api/auth/**", // 认证 API
+                                "/api/leaderboard" // 排行榜
                         ).permitAll()
-                        // 其他所有请求(anyRequest)都需要身份认证(authenticated)
+                        // 其他所有请求都需要登录
                         .anyRequest().authenticated()
                 )
 
-                // (新增) 确保 SecurityContext 在请求之间被保存
-                // 这对于让 WebSocket 继承 HTTP 登录状态至关重要
+                // 确保 Session Context (登录状态) 在请求间保持
                 .securityContext(context -> context
                         .securityContextRepository(new HttpSessionSecurityContextRepository())
                 )
-
-                // 登出配置
                 .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout") // 登出 API
-                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200)) // 登出成功返回 200 OK
+                        .logoutUrl("/api/auth/logout")
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
                 );
 
         return http.build();
     }
+
+    // (重大修改)
+    // 删除了 public AuthorizationManager<Message<?>> webSocketAuthorizationManager() {}
+    // 让 Spring Boot 使用默认的 WebSocket 消息安全配置。
 }

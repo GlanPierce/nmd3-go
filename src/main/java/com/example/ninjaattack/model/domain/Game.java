@@ -21,11 +21,12 @@ public class Game {
     private String placementRoundStarter;
     private int placementsMadeThisTurn;
 
-    // --- (新增) 计时器状态 ---
-    // Long.MAX_VALUE 意味着计时器被“解除” (disarmed)
+    // 15秒的回合计时器
     private long p1ActionDeadline = Long.MAX_VALUE;
     private long p2ActionDeadline = Long.MAX_VALUE;
-    // --- (新增) 结束 ---
+
+    // (新增) 30秒的“匹配确认”计时器
+    private long confirmationDeadline = Long.MAX_VALUE;
 
     public Game(String p1Username, String p2Username) {
         this.gameId = UUID.randomUUID().toString().substring(0, 8);
@@ -33,21 +34,15 @@ public class Game {
         this.p2 = new Player("p2", p2Username);
         this.board = new Board();
         this.currentRound = 1;
-        this.phase = GamePhase.PRE_GAME;
+        this.phase = GamePhase.PRE_GAME; // 游戏从 PRE_GAME 阶段开始
         this.firstMovePlayerId = Math.random() < 0.5 ? "p1" : "p2";
-
-        // (删除) 不再在这里开始伏兵阶段
-        // resetForAmbushPhase();
     }
 
     public void resetForAmbushPhase() {
         this.phase = GamePhase.AMBUSH;
         this.p1AmbushesPlacedThisRound = 0;
         this.p2AmbushesPlacedThisRound = 0;
-
-        // (删除) 计时器将由 GameService 在转换阶段时启动
-        // startTimer("p1", 15);
-        // startTimer("p2", 15);
+        // (注意: 计时器在 GameService.startGame 中启动)
     }
 
     public String getOpponentId(String playerId) {
@@ -58,7 +53,7 @@ public class Game {
         return playerId.equals("p1") ? p1 : p2;
     }
 
-    // --- (新增) 计时器辅助方法 ---
+    // --- 计时器辅助方法 ---
     public void startTimer(String playerId, int seconds) {
         long deadline = System.currentTimeMillis() + (seconds * 1000L);
         if (playerId.equals("p1")) {
@@ -75,5 +70,4 @@ public class Game {
             this.p2ActionDeadline = Long.MAX_VALUE;
         }
     }
-    // --- (新增) 结束 ---
 }

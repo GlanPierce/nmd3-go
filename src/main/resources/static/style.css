@@ -2,10 +2,9 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: #f0f2f5;
     color: #333;
-    /* (修改) 移除 flex, 因为我们有全屏遮罩 */
 }
 
-/* (新增) 认证遮罩层 */
+/* (不变) 认证遮罩层 */
 #auth-overlay {
     position: fixed;
     top: 0;
@@ -18,7 +17,6 @@ body {
     align-items: center;
     z-index: 1000;
 }
-
 #auth-box {
     background: #fff;
     padding: 30px 40px;
@@ -82,7 +80,8 @@ body {
     min-height: 1.2em;
 }
 
-/* (新增) 主应用容器 (登录后显示) */
+/* --- 主应用容器和信息栏 --- */
+
 #app-root {
     display: flex;
     justify-content: center;
@@ -93,7 +92,7 @@ body {
     box-sizing: border-box;
 }
 
-/* (新增) 用户信息栏 */
+/* 用户信息栏 */
 #user-info-bar {
     position: absolute;
     top: 0;
@@ -121,13 +120,13 @@ body {
     background: #c9302c;
 }
 
-/* (新增) 匹配大厅 (占位符) */
+/* 匹配大厅 */
 .lobby-container {
     padding: 20px;
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    margin-top: 60px; /* 避开顶部信息栏 */
+    margin-top: 60px;
     width: 300px;
 }
 .lobby-container button {
@@ -144,14 +143,24 @@ body {
     background-color: #0056b3;
 }
 
-/* (修改) 游戏容器 (现在也需要避开顶部栏) */
+/* 游戏容器 */
 .game-container {
     background: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 20px;
     width: 450px;
-    margin-top: 60px; /* 避开顶部信息栏 */
+    margin-top: 60px;
+}
+
+/* 排行榜容器 */
+.leaderboard-container {
+    width: 300px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 60px;
 }
 
 h1, h2 {
@@ -162,20 +171,8 @@ h1, h2 {
     margin-top: 0;
 }
 
-/* (修改) 排行榜容器 */
-.leaderboard-container {
-    width: 300px;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    margin-top: 60px; /* 避开顶部信息栏 */
-}
 
-
-/* --- (以下所有游戏样式保持不变) --- */
-
-/* 控制区 */
+/* --- 游戏界面样式 --- */
 .controls {
     margin-bottom: 20px;
     display: flex;
@@ -183,7 +180,7 @@ h1, h2 {
     gap: 10px;
     align-items: center;
 }
-.controls button, .controls select { /* (select 样式可以保留) */
+.controls button, .controls select {
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
@@ -194,8 +191,6 @@ h1, h2 {
 .controls button:hover {
     background-color: #e9e9e9;
 }
-
-/* 游戏信息 */
 #game-info {
     margin-bottom: 20px;
     text-align: center;
@@ -285,30 +280,111 @@ h1, h2 {
     border: 1px solid white;
 }
 
-/* 游戏结束弹窗 */
+/* --- 弹窗样式 (已修复) --- */
 .modal {
-    display: block;
     position: fixed;
-    z-index: 1;
-    left: 0;
     top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    overflow: auto;
     background-color: rgba(0,0,0,0.4);
+
+    /* ****** 核心修复: Flexbox 居中 ****** */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 1000;
 }
 .modal-content {
     background-color: #fefefe;
-    margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
+
+    /* ****** 核心修复: 移除 margin: 15% auto; ****** */
     max-width: 400px;
+    min-height: 150px;
+    overflow-y: auto;
+
     text-align: center;
     border-radius: 8px;
 }
 
-/* 计时器样式 */
+/* --- 特定弹窗样式 --- */
+#match-found-modal .modal-content {
+    background-color: #fff;
+    border: 3px solid #28a745;
+    max-width: 350px; /* 让它比游戏结束弹窗略窄 */
+}
+
+#match-found-modal #match-opponent-name {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+#match-found-modal #match-confirm-timer {
+    color: #d9534f;
+    font-size: 1.5em;
+}
+
+#match-found-modal #match-ready-btn {
+    padding: 12px 25px;
+    font-size: 1.2em;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#match-found-modal #match-ready-btn:hover {
+    background-color: #1e7e34;
+}
+
+#match-found-modal #match-ready-btn:disabled {
+    background-color: #999;
+}
+
+
+/* --- 其他辅助样式 --- */
+#leaderboard-list {
+    list-style-type: none;
+    padding: 0;
+}
+#leaderboard-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+#leaderboard-list li:last-child {
+    border-bottom: none;
+}
+#leaderboard-list li span:last-child {
+    font-weight: bold;
+    color: #007bff;
+}
+.controls .dev-mode {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-top: 10px;
+    background-color: #fffbe6;
+    border: 1px solid #ffe58f;
+    padding: 5px 10px;
+    border-radius: 6px;
+}
+.controls .dev-mode label {
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #d46b08;
+}
+.controls .dev-mode input {
+    cursor: pointer;
+}
 .stat .timer {
     margin-top: 5px;
     font-weight: bold;
@@ -318,4 +394,13 @@ h1, h2 {
 .stat .timer.timing-out {
     color: #d9534f;
     transform: scale(1.1);
+}
+
+/* (新增) 修复弹窗宽度跳变 */
+#match-found-modal #match-status-message {
+    /* 预留足够的空间显示最长的消息（例如：'玩家 p1 已准备!'） */
+    min-width: 200px;
+    height: 1.2em; /* 确保高度固定 */
+    display: block; /* 保证 min-width 生效 */
+    margin-top: 10px;
 }
