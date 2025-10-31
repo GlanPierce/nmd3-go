@@ -2,25 +2,178 @@ body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background-color: #f0f2f5;
     color: #333;
+    /* (修改) 移除 flex, 因为我们有全屏遮罩 */
+}
+
+/* (新增) 认证遮罩层 */
+#auth-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+#auth-box {
+    background: #fff;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+#auth-box h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+#auth-box h3 {
+    margin-top: 15px;
+    margin-bottom: 10px;
+    text-align: left;
+    color: #555;
+    font-size: 1.1em;
+}
+#auth-box form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+#auth-box input[type="text"],
+#auth-box input[type="password"] {
+    padding: 12px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+#auth-box button {
+    padding: 12px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#auth-box button:hover {
+    background-color: #0056b3;
+}
+#auth-box #register-form button {
+    background-color: #28a745;
+}
+#auth-box #register-form button:hover {
+    background-color: #1e7e34;
+}
+#auth-box hr {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 25px 0;
+}
+#auth-status {
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #d9534f;
+    min-height: 1.2em;
+}
+
+/* (新增) 主应用容器 (登录后显示) */
+#app-root {
     display: flex;
     justify-content: center;
     align-items: flex-start;
     padding: 20px;
     gap: 30px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
+/* (新增) 用户信息栏 */
+#user-info-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 100;
+    box-sizing: border-box;
+}
+#user-info-bar button {
+    background: #d9534f;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+#user-info-bar button:hover {
+    background: #c9302c;
+}
+
+/* (新增) 匹配大厅 (占位符) */
+.lobby-container {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 60px; /* 避开顶部信息栏 */
+    width: 300px;
+}
+.lobby-container button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.lobby-container button:hover {
+    background-color: #0056b3;
+}
+
+/* (修改) 游戏容器 (现在也需要避开顶部栏) */
 .game-container {
     background: #ffffff;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     padding: 20px;
     width: 450px;
+    margin-top: 60px; /* 避开顶部信息栏 */
 }
 
 h1, h2 {
     text-align: center;
     color: #1a1a1a;
 }
+.leaderboard-container h2 {
+    margin-top: 0;
+}
+
+/* (修改) 排行榜容器 */
+.leaderboard-container {
+    width: 300px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 60px; /* 避开顶部信息栏 */
+}
+
+
+/* --- (以下所有游戏样式保持不变) --- */
 
 /* 控制区 */
 .controls {
@@ -30,8 +183,7 @@ h1, h2 {
     gap: 10px;
     align-items: center;
 }
-
-.controls button, .controls select {
+.controls button, .controls select { /* (select 样式可以保留) */
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
@@ -39,18 +191,8 @@ h1, h2 {
     cursor: pointer;
     background-color: #f9f9f9;
 }
-
 .controls button:hover {
     background-color: #e9e9e9;
-}
-
-#start-game-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-}
-#start-game-btn:hover {
-    background-color: #0056b3;
 }
 
 /* 游戏信息 */
@@ -58,7 +200,6 @@ h1, h2 {
     margin-bottom: 20px;
     text-align: center;
 }
-
 #status-message {
     font-size: 1.1em;
     font-weight: bold;
@@ -68,7 +209,6 @@ h1, h2 {
     background: #fdf7f7;
     border-radius: 6px;
 }
-
 .player-stats {
     display: flex;
     justify-content: space-around;
@@ -92,10 +232,9 @@ h1, h2 {
     width: 420px;
     height: 420px;
     border: 2px solid #555;
-    background-color: #d2b48c; /* 木质棋盘色 */
+    background-color: #d2b48c;
     margin: 0 auto;
 }
-
 .square {
     width: 100%;
     height: 100%;
@@ -107,7 +246,6 @@ h1, h2 {
     position: relative;
     cursor: pointer;
 }
-
 .square:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
@@ -126,22 +264,20 @@ h1, h2 {
     background: radial-gradient(circle at 65% 35%, white, #c00000 60%);
 }
 
-/* 伏兵 - 用伪元素显示在角落 */
+/* 伏兵 */
 .ambush-indicator {
     position: absolute;
     width: 15px;
     height: 15px;
     border-radius: 3px;
-    opacity: 0.7; /* 伏兵是隐藏的, 仅为玩家显示 */
+    opacity: 0.7;
 }
-/* P1 视角看到的 P1 伏兵 */
 .square.p1-ambush .ambush-indicator.p1 {
     top: 3px;
     left: 3px;
     background-color: #333;
     border: 1px solid white;
 }
-/* P2 视角看到的 P2 伏兵 */
 .square.p2-ambush .ambush-indicator.p2 {
     bottom: 3px;
     right: 3px;
@@ -172,53 +308,6 @@ h1, h2 {
     border-radius: 8px;
 }
 
-/* 排行榜 */
-.leaderboard-container {
-    width: 300px;
-    background: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-}
-#leaderboard-list {
-    list-style-type: none;
-    padding: 0;
-}
-#leaderboard-list li {
-    padding: 8px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-}
-#leaderboard-list li:last-child {
-    border-bottom: none;
-}
-#leaderboard-list li span:last-child {
-    font-weight: bold;
-    color: #007bff;
-}
-
-/* 开发者模式复选框样式 */
-.controls .dev-mode {
-    display: flex;
-    align-items: center;
-    width: 100%; /* 让它在新一行显示 */
-    margin-top: 10px;
-    background-color: #fffbe6;
-    border: 1px solid #ffe58f;
-    padding: 5px 10px;
-    border-radius: 6px;
-}
-.controls .dev-mode label {
-    margin-left: 5px;
-    cursor: pointer;
-    font-size: 13px;
-    color: #d46b08;
-}
-.controls .dev-mode input {
-    cursor: pointer;
-}
-
 /* 计时器样式 */
 .stat .timer {
     margin-top: 5px;
@@ -226,9 +315,7 @@ h1, h2 {
     color: #333;
     transition: all 0.3s;
 }
-
-/* 时间快用完时高亮 */
 .stat .timer.timing-out {
-    color: #d9534f; /* 红色 */
+    color: #d9534f;
     transform: scale(1.1);
 }
