@@ -31,6 +31,9 @@ public class User implements UserDetails { // 实现 UserDetails 接口
     @Column(nullable = false)
     private int score = 0; // 默认为 0
 
+    @Column(nullable = false)
+    private String role = "ROLE_USER"; // 默认角色
+
     // 构造函数
     public User(String username, String password, int score) {
         this.username = username;
@@ -44,7 +47,7 @@ public class User implements UserDetails { // 实现 UserDetails 接口
     @JsonIgnore
     public Collection<? extends GrantedAuthority> getAuthorities() {
         // 简单起见，我们给所有用户一个 "USER" 角色
-        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        return List.of(new SimpleGrantedAuthority(role));
     }
 
     // getPassword() 和 getUsername() 由 @Data (Lombok) 自动提供

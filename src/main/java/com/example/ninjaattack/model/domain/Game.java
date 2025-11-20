@@ -1,10 +1,16 @@
 package com.example.ninjaattack.model.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.UUID;
+import java.util.concurrent.ScheduledFuture;
 
 @Data
+@NoArgsConstructor
 public class Game {
+
     private String gameId;
     private Player p1;
     private Player p2;
@@ -21,20 +27,25 @@ public class Game {
     private String placementRoundStarter;
     private int placementsMadeThisTurn;
 
-    // 15秒的回合计时器
+    // Timers (Not serializable)
+    @JsonIgnore
+    private transient ScheduledFuture<?> turnTimer;
+    @JsonIgnore
+    private transient ScheduledFuture<?> matchTimer;
+
+    // Deadlines (Serializable, used for state recovery)
     private long p1ActionDeadline = Long.MAX_VALUE;
     private long p2ActionDeadline = Long.MAX_VALUE;
-
-    // (新增) 30秒的“匹配确认”计时器
     private long confirmationDeadline = Long.MAX_VALUE;
 
     public Game(String p1Username, String p2Username) {
-        this.gameId = UUID.randomUUID().toString().substring(0, 8);
+        this.gameId = UUID.randomUUID().toString();
         this.p1 = new Player("p1", p1Username);
         this.p2 = new Player("p2", p2Username);
         this.board = new Board();
+        this.phase = GamePhase.PRE_GAME;
         this.currentRound = 1;
-        this.phase = GamePhase.PRE_GAME; // 游戏从 PRE_GAME 阶段开始
+        // Randomize first mover for the game (usually for R1, but logic might vary)
         this.firstMovePlayerId = Math.random() < 0.5 ? "p1" : "p2";
     }
 
