@@ -50,17 +50,17 @@ class GameServiceTest {
         String gameId = game.getGameId();
 
         // 2. Players Ready
-        gameService.playerReady(gameId, "p1");
-        gameService.playerReady(gameId, "p2");
+        gameService.playerReady(gameId, "p1", "User1");
+        gameService.playerReady(gameId, "p2", "User2");
 
         // Should transition to AMBUSH
         assertEquals(GamePhase.AMBUSH, game.getPhase());
 
         // 3. Ambush Phase
-        gameService.placeAmbush(gameId, createMove("p1", 0, 0));
-        gameService.placeAmbush(gameId, createMove("p1", 0, 1));
-        gameService.placeAmbush(gameId, createMove("p2", 5, 5));
-        gameService.placeAmbush(gameId, createMove("p2", 5, 4));
+        gameService.placeAmbush(gameId, createMove("p1", 0, 0), "User1");
+        gameService.placeAmbush(gameId, createMove("p1", 0, 1), "User1");
+        gameService.placeAmbush(gameId, createMove("p2", 5, 5), "User2");
+        gameService.placeAmbush(gameId, createMove("p2", 5, 4), "User2");
 
         // Should transition to PLACEMENT
         assertEquals(GamePhase.PLACEMENT, game.getPhase());
@@ -71,7 +71,8 @@ class GameServiceTest {
 
         // Find a valid empty spot (not an ambush spot to keep it simple)
         int r = 2, c = 2;
-        gameService.placePiece(gameId, createMove(currentTurn, r, c));
+        String username = "p1".equals(currentTurn) ? "User1" : "User2";
+        gameService.placePiece(gameId, createMove(currentTurn, r, c), username);
 
         assertEquals(currentTurn, game.getBoard().getSquare(r, c).getOwnerId());
         assertEquals(1, game.getPlacementsMadeThisTurn());

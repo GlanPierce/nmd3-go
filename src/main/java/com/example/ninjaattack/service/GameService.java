@@ -209,6 +209,20 @@ public class GameService {
 
     // --- 核心游戏 API ---
 
+    // [NEW] Validate player identity
+    private void validatePlayerIdentity(Game game, String playerId, String username) {
+        String expectedUsername = null;
+        if ("p1".equals(playerId)) {
+            expectedUsername = game.getP1().getUsername();
+        } else if ("p2".equals(playerId)) {
+            expectedUsername = game.getP2().getUsername();
+        }
+
+        if (expectedUsername == null || !expectedUsername.equals(username)) {
+            throw new IllegalArgumentException("Unauthorized: Player " + playerId + " is not " + username);
+        }
+    }
+
     public Game createGame(String p1Username, String p2Username) {
         Game game = new Game(p1Username, p2Username);
         game.setConfirmationDeadline(System.currentTimeMillis() + 30000L);
@@ -231,7 +245,7 @@ public class GameService {
         return game;
     }
 
-    public void playerReady(String gameId, String playerId) {
+    public void playerReady(String gameId, String playerId, String username) {
         Game game = findGame(gameId);
         if (game == null)
             return;
@@ -239,6 +253,8 @@ public class GameService {
         synchronized (game) {
             if (game.getPhase() != GamePhase.PRE_GAME)
                 return;
+
+            validatePlayerIdentity(game, playerId, username);
 
             Set<String> readyPlayers = readyPlayersByGame.get(gameId);
             if (readyPlayers == null)
@@ -278,12 +294,13 @@ public class GameService {
         broadcastGameState(game.getGameId());
     }
 
-    public void placeAmbush(String gameId, MoveRequest move) {
+    public void placeAmbush(String gameId, MoveRequest move, String username) {
         Game game = findGame(gameId);
         if (game == null)
             return;
 
         synchronized (game) {
+            validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placeAmbush(game, move);
 
             if (move.getPlayerId().equals("p1") && game.getP1AmbushesPlacedThisRound() == 2)
@@ -301,12 +318,13 @@ public class GameService {
         }
     }
 
-    public void placePiece(String gameId, MoveRequest move) {
+    public void placePiece(String gameId, MoveRequest move, String username) {
         Game game = findGame(gameId);
         if (game == null)
             return;
 
         synchronized (game) {
+            validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placePiece(game, move);
 
             if (game.getPhase() == GamePhase.GAME_OVER) {
