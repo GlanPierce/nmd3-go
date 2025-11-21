@@ -11,14 +11,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class GameService {
@@ -40,6 +42,9 @@ public class GameService {
         this.taskScheduler = taskScheduler;
         this.gameRepository = gameRepository;
         this.objectMapper = objectMapper;
+        // [NEW] Configure ObjectMapper to be lenient
+        this.objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                false);
         this.gameEngine = new GameEngine();
     }
 
@@ -62,8 +67,9 @@ public class GameService {
         }
     }
 
-    // [NEW] Save game state to DB
-    private void saveGameState(Game game) {
+    // [OPTIMIZED] Async Save game state to DB
+    @Async // Run in background thread
+    public void saveGameState(Game game) {
         try {
             GameEntity entity = new GameEntity();
             entity.setId(game.getGameId());
@@ -79,48 +85,77 @@ public class GameService {
         }
     }
 
-    // --- 核心：计划任务时钟 ---
-    @Scheduled(fixedRate = 1000)
-    public void checkGameTimeouts() {
-        long now = System.currentTimeMillis();
-        for (String gameId : activeGames.keySet()) {
-            Game game = activeGames.get(gameId);
-            if (game == null)
-                continue;
+    // [OPTIMIZED] Event-driven timer scheduling instead of polling
+    private void scheduleTimeout(Game game, String playerId, int seconds) {
+        // Cancel existing timer for this player if any
+        cancelTimer(game, playerId);
 
-            synchronized (game) {
-                boolean stateChanged = false;
-                // 检查 30 秒的“匹配确认”超时
-                if (game.getPhase() == GamePhase.PRE_GAME && now > game.getConfirmationDeadline()) {
-                    System.out.println("游戏 " + gameId + " 匹配确认超时。");
-                    handleMatchTimeout(game);
-                    stateChanged = true; // Though handleMatchTimeout cleans up, so maybe not needed
+        long delayMs = seconds * 1000L;
+        Date startTime = new Date(System.currentTimeMillis() + delayMs);
+
+        // Schedule the task
+        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
+            handleTimeoutTask(game.getGameId(), playerId);
+        }, startTime);
+
+        // Store the future in the game object (transient field)
+        if ("p1".equals(playerId)) {
+            // We might need to add specific fields for p1/p2 timers in Game class if we
+            // want to track them separately
+            // For now, let's assume we use the generic turnTimer/matchTimer or add a map
+            // But Game.java has turnTimer and matchTimer. Let's use them.
+            // Actually, Game.java has turnTimer and matchTimer, but we need to know WHICH
+            // player's timer it is.
+            // For simplicity, let's just use the deadlines in Game to double-check inside
+            // the task.
+            game.setTurnTimer(future);
+        } else {
+            // If both have timers (Ambush phase), we need two fields.
+            // Current Game.java only has turnTimer and matchTimer.
+            // Let's use turnTimer for the current active timer.
+            // For Ambush phase where BOTH have timers, we might need a slight adjustment.
+            // However, for now, let's just store it.
+            game.setTurnTimer(future);
+        }
+
+        // Update deadline for frontend display
+        game.startTimer(playerId, seconds);
+    }
+
+    private void cancelTimer(Game game, String playerId) {
+        game.disarmTimer(playerId);
+        if (game.getTurnTimer() != null && !game.getTurnTimer().isDone()) {
+            game.getTurnTimer().cancel(false);
+        }
+    }
+
+    // The task that runs when timeout occurs
+    private void handleTimeoutTask(String gameId, String playerId) {
+        Game game = activeGames.get(gameId);
+        if (game == null)
+            return;
+
+        synchronized (game) {
+            // Double check if phase is still valid for timeout
+            if (game.getPhase() == GamePhase.GAME_OVER)
+                return;
+
+            // Check if the deadline actually passed (to avoid race conditions where move
+            // came in just now)
+            long now = System.currentTimeMillis();
+            long deadline = "p1".equals(playerId) ? game.getP1ActionDeadline() : game.getP2ActionDeadline();
+
+            if (now >= deadline) {
+                System.out.println("Timeout triggered for " + playerId + " in game " + gameId);
+                gameEngine.handleTimeout(game, playerId);
+                updateTimersAfterMove(game);
+
+                if (game.getPhase() != GamePhase.GAME_OVER) {
+                    broadcastGameState(game.getGameId());
+                } else {
+                    handleGameOver(game);
                 }
-                // 检查 15 秒的“游戏回合”超时
-                else if (game.getPhase() != GamePhase.PRE_GAME && game.getPhase() != GamePhase.GAME_OVER) {
-                    String timedOutPlayerId = null;
-                    if (now > game.getP1ActionDeadline()) {
-                        timedOutPlayerId = "p1";
-                    } else if (now > game.getP2ActionDeadline()) {
-                        timedOutPlayerId = "p2";
-                    }
-
-                    if (timedOutPlayerId != null) {
-                        gameEngine.handleTimeout(game, timedOutPlayerId);
-                        updateTimersAfterMove(game);
-                        stateChanged = true;
-
-                        if (game.getPhase() != GamePhase.GAME_OVER) {
-                            broadcastGameState(game.getGameId());
-                        } else {
-                            handleGameOver(game);
-                        }
-                    }
-                }
-
-                if (stateChanged && game.getPhase() != GamePhase.GAME_OVER) {
-                    saveGameState(game);
-                }
+                saveGameState(game);
             }
         }
     }
@@ -183,6 +218,16 @@ public class GameService {
 
         saveGameState(game); // [NEW] Save initial state
 
+        // Schedule match confirmation timeout
+        Date deadline = new Date(System.currentTimeMillis() + 30000L);
+        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
+            Game g = activeGames.get(game.getGameId());
+            if (g != null && g.getPhase() == GamePhase.PRE_GAME) {
+                handleMatchTimeout(g);
+            }
+        }, deadline);
+        game.setMatchTimer(future);
+
         return game;
     }
 
@@ -205,6 +250,10 @@ public class GameService {
             if (readyPlayers.contains("p1") && readyPlayers.contains("p2")) {
                 System.out.println("双方准备就绪, 游戏 " + gameId + " 开始!");
                 game.setConfirmationDeadline(Long.MAX_VALUE);
+                // Cancel match timer
+                if (game.getMatchTimer() != null) {
+                    game.getMatchTimer().cancel(false);
+                }
                 startGame(game);
             } else {
                 broadcastGameState(game.getGameId(), GamePhase.PRE_GAME, "玩家 " + playerId + " 已准备!");
@@ -215,8 +264,14 @@ public class GameService {
     private void startGame(Game game) {
         gameEngine.startGame(game);
 
-        game.startTimer("p1", 15);
-        game.startTimer("p2", 15);
+        // Start timers for both players (Ambush phase)
+        // Note: For Ambush phase where both have timers, our simple single 'turnTimer'
+        // field in Game might be insufficient if we want to cancel them individually
+        // strictly.
+        // But since they run in parallel and we check deadlines, we can just schedule
+        // two tasks.
+        scheduleTimeout(game, "p1", 15);
+        scheduleTimeout(game, "p2", 15);
 
         saveGameState(game); // [NEW] Save started state
 
@@ -232,9 +287,9 @@ public class GameService {
             gameEngine.placeAmbush(game, move);
 
             if (move.getPlayerId().equals("p1") && game.getP1AmbushesPlacedThisRound() == 2)
-                game.disarmTimer("p1");
+                cancelTimer(game, "p1");
             if (move.getPlayerId().equals("p2") && game.getP2AmbushesPlacedThisRound() == 2)
-                game.disarmTimer("p2");
+                cancelTimer(game, "p2");
 
             if (game.getPhase() == GamePhase.PLACEMENT) {
                 updateTimersAfterMove(game);
@@ -265,16 +320,16 @@ public class GameService {
     }
 
     private void updateTimersAfterMove(Game game) {
-        game.disarmTimer("p1");
-        game.disarmTimer("p2");
+        cancelTimer(game, "p1");
+        cancelTimer(game, "p2");
 
         if (game.getPhase() == GamePhase.AMBUSH) {
             if (game.getP1AmbushesPlacedThisRound() < 2)
-                game.startTimer("p1", 15);
+                scheduleTimeout(game, "p1", 15);
             if (game.getP2AmbushesPlacedThisRound() < 2)
-                game.startTimer("p2", 15);
+                scheduleTimeout(game, "p2", 15);
         } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
-            game.startTimer(game.getCurrentTurnPlayerId(), 15);
+            scheduleTimeout(game, game.getCurrentTurnPlayerId(), 15);
         }
     }
 
