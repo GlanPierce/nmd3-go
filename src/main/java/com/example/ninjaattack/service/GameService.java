@@ -55,12 +55,31 @@ public class GameService {
         for (GameEntity entity : entities) {
             try {
                 Game game = objectMapper.readValue(entity.getGameStateJson(), Game.class);
-                // Re-initialize timers if needed? For now, just load state.
-                // Ideally we should calculate remaining time based on timestamps, but that's
-                // complex.
-                // Let's at least put it back in memory so players can reconnect.
                 activeGames.put(game.getGameId(), game);
-                System.out.println("Loaded game " + game.getGameId() + " from DB.");
+
+                // Restore timers
+                long now = System.currentTimeMillis();
+                if (game.getPhase() == GamePhase.AMBUSH) {
+                    long deadline = Math.max(game.getP1ActionDeadline(), game.getP2ActionDeadline());
+                    long delay = Math.max(0, deadline - now);
+                    if (delay > 0) {
+                        scheduleAmbushTimeout(game, (int) (delay / 1000));
+                    } else {
+                        // Already expired, trigger immediately
+                        handleAmbushTimeoutTask(game.getGameId());
+                    }
+                } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
+                    long deadline = "p1".equals(game.getCurrentTurnPlayerId()) ? game.getP1ActionDeadline()
+                            : game.getP2ActionDeadline();
+                    long delay = Math.max(0, deadline - now);
+                    if (delay > 0) {
+                        scheduleTimeout(game, game.getCurrentTurnPlayerId(), (int) (delay / 1000));
+                    } else {
+                        handleTimeoutTask(game.getGameId(), game.getCurrentTurnPlayerId());
+                    }
+                }
+
+                System.out.println("Loaded game " + game.getGameId() + " from DB and restored timers.");
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
             }
@@ -88,7 +107,7 @@ public class GameService {
     // [OPTIMIZED] Event-driven timer scheduling instead of polling
     private void scheduleTimeout(Game game, String playerId, int seconds) {
         // Cancel existing timer for this player if any
-        cancelTimer(game, playerId);
+        cancelTimer(game);
 
         long delayMs = seconds * 1000L;
         Date startTime = new Date(System.currentTimeMillis() + delayMs);
@@ -98,38 +117,38 @@ public class GameService {
             handleTimeoutTask(game.getGameId(), playerId);
         }, startTime);
 
-        // Store the future in the game object (transient field)
-        if ("p1".equals(playerId)) {
-            // We might need to add specific fields for p1/p2 timers in Game class if we
-            // want to track them separately
-            // For now, let's assume we use the generic turnTimer/matchTimer or add a map
-            // But Game.java has turnTimer and matchTimer. Let's use them.
-            // Actually, Game.java has turnTimer and matchTimer, but we need to know WHICH
-            // player's timer it is.
-            // For simplicity, let's just use the deadlines in Game to double-check inside
-            // the task.
-            game.setTurnTimer(future);
-        } else {
-            // If both have timers (Ambush phase), we need two fields.
-            // Current Game.java only has turnTimer and matchTimer.
-            // Let's use turnTimer for the current active timer.
-            // For Ambush phase where BOTH have timers, we might need a slight adjustment.
-            // However, for now, let's just store it.
-            game.setTurnTimer(future);
-        }
+        game.setTurnTimer(future);
 
         // Update deadline for frontend display
         game.startTimer(playerId, seconds);
     }
 
-    private void cancelTimer(Game game, String playerId) {
-        game.disarmTimer(playerId);
+    private void scheduleAmbushTimeout(Game game, int seconds) {
+        cancelTimer(game);
+
+        long delayMs = seconds * 1000L;
+        Date startTime = new Date(System.currentTimeMillis() + delayMs);
+
+        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
+            handleAmbushTimeoutTask(game.getGameId());
+        }, startTime);
+
+        game.setTurnTimer(future);
+
+        // Set deadlines for BOTH players
+        game.startTimer("p1", seconds);
+        game.startTimer("p2", seconds);
+    }
+
+    private void cancelTimer(Game game) {
+        game.disarmTimer("p1");
+        game.disarmTimer("p2");
         if (game.getTurnTimer() != null && !game.getTurnTimer().isDone()) {
             game.getTurnTimer().cancel(false);
         }
     }
 
-    // The task that runs when timeout occurs
+    // The task that runs when timeout occurs (Normal phases)
     private void handleTimeoutTask(String gameId, String playerId) {
         Game game = activeGames.get(gameId);
         if (game == null)
@@ -157,6 +176,32 @@ public class GameService {
                 }
                 saveGameState(game);
             }
+        }
+    }
+
+    // The task that runs when timeout occurs (Ambush phase)
+    private void handleAmbushTimeoutTask(String gameId) {
+        Game game = activeGames.get(gameId);
+        if (game == null)
+            return;
+
+        synchronized (game) {
+            if (game.getPhase() != GamePhase.AMBUSH)
+                return;
+
+            long now = System.currentTimeMillis();
+            // Check P1
+            if (now >= game.getP1ActionDeadline() && game.getP1AmbushesPlacedThisRound() < 2) {
+                gameEngine.handleTimeout(game, "p1");
+            }
+            // Check P2
+            if (now >= game.getP2ActionDeadline() && game.getP2AmbushesPlacedThisRound() < 2) {
+                gameEngine.handleTimeout(game, "p2");
+            }
+
+            updateTimersAfterMove(game);
+            saveGameState(game);
+            broadcastGameState(gameId);
         }
     }
 
@@ -280,14 +325,8 @@ public class GameService {
     private void startGame(Game game) {
         gameEngine.startGame(game);
 
-        // Start timers for both players (Ambush phase)
-        // Note: For Ambush phase where both have timers, our simple single 'turnTimer'
-        // field in Game might be insufficient if we want to cancel them individually
-        // strictly.
-        // But since they run in parallel and we check deadlines, we can just schedule
-        // two tasks.
-        scheduleTimeout(game, "p1", 15);
-        scheduleTimeout(game, "p2", 15);
+        // Start shared timer for Ambush phase
+        scheduleAmbushTimeout(game, 15);
 
         saveGameState(game); // [NEW] Save started state
 
@@ -303,10 +342,14 @@ public class GameService {
             validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placeAmbush(game, move);
 
-            if (move.getPlayerId().equals("p1") && game.getP1AmbushesPlacedThisRound() == 2)
-                cancelTimer(game, "p1");
-            if (move.getPlayerId().equals("p2") && game.getP2AmbushesPlacedThisRound() == 2)
-                cancelTimer(game, "p2");
+            // Check if BOTH players are done
+            boolean p1Done = game.getP1AmbushesPlacedThisRound() == 2;
+            boolean p2Done = game.getP2AmbushesPlacedThisRound() == 2;
+
+            if (p1Done && p2Done) {
+                // Only cancel timer if EVERYONE is done
+                cancelTimer(game);
+            }
 
             if (game.getPhase() == GamePhase.PLACEMENT) {
                 updateTimersAfterMove(game);
@@ -338,14 +381,13 @@ public class GameService {
     }
 
     private void updateTimersAfterMove(Game game) {
-        cancelTimer(game, "p1");
-        cancelTimer(game, "p2");
+        // If we are here, it means we need to set up the NEXT timer.
+        // For Ambush phase, this is only called if we transitioned BACK to Ambush (next
+        // round)
+        // or if we transitioned TO Placement.
 
         if (game.getPhase() == GamePhase.AMBUSH) {
-            if (game.getP1AmbushesPlacedThisRound() < 2)
-                scheduleTimeout(game, "p1", 15);
-            if (game.getP2AmbushesPlacedThisRound() < 2)
-                scheduleTimeout(game, "p2", 15);
+            scheduleAmbushTimeout(game, 15);
         } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
             scheduleTimeout(game, game.getCurrentTurnPlayerId(), 15);
         }
@@ -355,6 +397,8 @@ public class GameService {
         GameResult result = game.getResult();
         if (result == null)
             return;
+
+        cancelTimer(game);
 
         if ("p1".equals(result.getWinnerId())) {
             userService.applyGameResult(game.getP1().getUsername(), game.getP2().getUsername());
