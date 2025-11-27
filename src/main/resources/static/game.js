@@ -79,6 +79,54 @@ export function initGame(client, matchResult, onLobbyReturn) {
 }
 
 /**
+ * (新增) 恢复游戏状态 (重连)
+ */
+export function restoreGame(client, gameState, user, onLobbyReturn) {
+    stompClient = client;
+    onGameOverCallback = onLobbyReturn;
+    currentGameId = gameState.gameId;
+
+    // 确定身份
+    if (user.username === gameState.p1Username) {
+        myPlayerId = 'p1';
+        myUsername = gameState.p1Username;
+        opponentUsername = gameState.p2Username;
+    } else if (user.username === gameState.p2Username) {
+        myPlayerId = 'p2';
+        myUsername = gameState.p2Username;
+        opponentUsername = gameState.p1Username;
+    } else {
+        console.error("用户名不匹配，无法恢复游戏");
+        return;
+    }
+
+    console.log(`恢复游戏成功! 游戏ID: ${currentGameId}, 我的身份: ${myPlayerId}`);
+
+    // 隐藏匹配弹窗 (如果存在)
+    UI.matchFoundModal.style.display = 'none';
+    if (matchConfirmTimerInterval) clearInterval(matchConfirmTimerInterval);
+
+    // 显示游戏界面
+    UI.lobbyContainer.style.display = 'none';
+    UI.gameContainer.style.display = 'block';
+
+    // 填充基本信息
+    UI.p1NameEl.textContent = gameState.p1Username;
+    UI.p2NameEl.textContent = gameState.p2Username;
+    UI.myIdentityEl.textContent = `${myPlayerId} (${myUsername})`;
+    UI.gameIdSpan.textContent = gameState.gameId;
+
+    // 订阅游戏主题
+    if (currentGameSubscription) {
+        currentGameSubscription.unsubscribe();
+    }
+    currentGameSubscription = stompClient.subscribe('/topic/game/' + currentGameId, handleGameMessage);
+
+    // 立即更新 UI
+    updateUI(gameState);
+}
+
+/**
  * 专门的游戏消息处理器
  */
 function handleGameMessage(gameMessage) {

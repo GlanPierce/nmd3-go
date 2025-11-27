@@ -26,10 +26,12 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public UserDetailsService userDetailsService(UserService userService) {
         return userService;
     }
+
     @Bean
     public AuthenticationProvider authenticationProvider(UserService userService) {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
@@ -37,17 +39,17 @@ public class SecurityConfig {
         provider.setPasswordEncoder(passwordEncoder());
         return provider;
     }
+
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 
-
     /**
      * 配置 HTTP 安全规则 (SecurityFilterChain)
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, UserService userService) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -70,22 +72,20 @@ public class SecurityConfig {
                                 "/api/leaderboard" // 排行榜
                         ).permitAll()
                         // 其他所有请求都需要登录
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 // 确保 Session Context (登录状态) 在请求间保持
                 .securityContext(context -> context
-                        .securityContextRepository(new HttpSessionSecurityContextRepository())
-                )
+                        .securityContextRepository(new HttpSessionSecurityContextRepository()))
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
-                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200))
+                        .logoutSuccessHandler((req, res, auth) -> res.setStatus(200)))
+                .rememberMe(remember -> remember
+                        .userDetailsService(userService)
+                        .key("uniqueAndSecretKey")
+                        .tokenValiditySeconds(15552000) // 180 days
                 );
 
         return http.build();
     }
-
-    // (重大修改)
-    // 删除了 public AuthorizationManager<Message<?>> webSocketAuthorizationManager() {}
-    // 让 Spring Boot 使用默认的 WebSocket 消息安全配置。
 }

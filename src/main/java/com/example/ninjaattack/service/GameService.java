@@ -252,6 +252,24 @@ public class GameService {
         readyPlayersByGame.remove(gameId);
     }
 
+    // [NEW] Find active game for a user
+    public GameStateDTO findActiveGameByUsername(String username) {
+        for (Game game : activeGames.values()) {
+            // Skip finished games
+            if (game.getPhase() == GamePhase.GAME_OVER || game.getPhase() == GamePhase.MATCH_CANCELLED) {
+                continue;
+            }
+
+            // Check if user is in this game
+            if (username.equals(game.getP1().getUsername()) || username.equals(game.getP2().getUsername())) {
+                synchronized (game) {
+                    return mapToDTO(game);
+                }
+            }
+        }
+        return null;
+    }
+
     // --- 核心游戏 API ---
 
     // [NEW] Validate player identity

@@ -1,10 +1,10 @@
 import { UI, initUI } from './ui.js';
-import { handleLogin, handleRegister, handleLogout, checkLoginStatus, fetchLeaderboard } from './api.js';
+import { handleLogin, handleRegister, handleLogout, checkLoginStatus, fetchLeaderboard, fetchActiveGame } from './api.js';
 import { connectMasterWebSocket, disconnectMasterWebSocket, initLobby } from './lobby.js';
-import { initGameControls } from './game.js';
+import { initGameControls, restoreGame } from './game.js';
 
 /**
- * 整个应用的“状态机”
+ * 整个应用的"状态机"
  */
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * 登录成功的回调
  */
-function onLoginSuccess(user) {
+async function onLoginSuccess(user) {
     console.log("登录成功:", user);
 
     // 1. 隐藏登录，显示应用
@@ -42,10 +42,25 @@ function onLoginSuccess(user) {
     UI.userInfoScore.textContent = user.score;
 
     // 3. (关键修改)
-    // 将 user 对象 (包含 user.id) 传递给 lobby
-    connectMasterWebSocket(user, onReturnToLobby);
+    // 将 user 对象 (包含 user.id) 传递给 lobby，并等待连接成功
+    try {
+        const stompClient = await connectMasterWebSocket(user, onReturnToLobby);
 
-    // 4. 自动刷新排行榜
+        // 4. (新增) 检查是否有活跃游戏，自动恢复
+        const activeGame = await fetchActiveGame();
+        if (activeGame) {
+            console.log("发现活跃游戏，正在恢复...", activeGame);
+            restoreGame(stompClient, activeGame, user, onReturnToLobby);
+        } else {
+            console.log("无活跃游戏，停留在 Lobby。");
+        }
+
+    } catch (error) {
+        console.error("连接服务器失败:", error);
+        // 可以选择在这里显示错误提示
+    }
+
+    // 5. 自动刷新排行榜
     fetchLeaderboard();
 }
 

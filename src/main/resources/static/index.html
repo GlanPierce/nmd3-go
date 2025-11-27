@@ -1,118 +1,119 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>忍者棋局</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div id="auth-overlay">
-    <div id="auth-box">
-        <h2>忍者棋局 - 登录 / 注册</h2>
+    <div id="auth-overlay">
+        <div id="auth-box">
+            <h2>忍者棋局 - 登录 / 注册</h2>
 
-        <form id="login-form">
-            <h3>登录</h3>
-            <input type="text" id="login-username" placeholder="用户名" required>
-            <input type="password" id="login-password" placeholder="密码" required>
-            <button type="submit">登录</button>
-        </form>
+            <form id="login-form">
+                <h3>登录</h3>
+                <input type="text" id="login-username" placeholder="用户名" required>
+                <input type="password" id="login-password" placeholder="密码" required>
+                <button type="submit">登录</button>
+            </form>
 
-        <hr>
+            <hr>
 
-        <form id="register-form" novalidate> <h3>注册新账号</h3>
+            <form id="register-form" novalidate>
+                <h3>注册新账号</h3>
 
-            <input type="text" id="register-username" placeholder="用户名" required
-                   minlength="3"
-                   maxlength="16"
-                   pattern="^[a-zA-Z0-9_]{3,16}$"
-                   title="用户名必须为 3-16 位的字母、数字或下划线。">
+                <input type="text" id="register-username" placeholder="用户名" required minlength="3" maxlength="16"
+                    pattern="^[a-zA-Z0-9_]{3,16}$" title="用户名必须为 3-16 位的字母、数字或下划线。">
 
-            <input type="password" id="register-password" placeholder="密码" required
-                   minlength="8"
-                   pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$"
-                   title="密码必须至少 8 位，且包含至少一个大写字母、一个小写字母和一个数字。">
+                <input type="password" id="register-password" placeholder="密码" required minlength="8"
+                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$"
+                    title="密码必须至少 8 位，且包含至少一个大写字母、一个小写字母和一个数字。">
 
-            <button type="submit">注册</button>
-        </form>
+                <button type="submit">注册</button>
+            </form>
 
-        <p id="auth-status"></p>
-    </div>
-</div>
-
-
-<div id="app-root" style="display: none;">
-
-    <div id="user-info-bar">
-        <span>欢迎, <strong id="user-info-username">...</strong> (积分: <strong id="user-info-score">0</strong>)</span>
-        <button id="logout-btn">登出</button>
-    </div>
-
-    <div class="lobby-container" id="lobby-container">
-        <h3>匹配大厅</h3>
-        <button id="find-match-btn">寻找对战</button>
-        <p id="lobby-status">请点击 "寻找对战" 开始匹配...</p>
-    </div>
-
-    <div class="game-container" id="game-container" style="display: none;">
-        <div class="controls">
-            <button id="refresh-btn">刷新状态(重连)</button>
-            <p><strong>游戏ID:</strong> <span id="game-id">N/A</span></p>
-            <div class="dev-mode">
-                <input type="checkbox" id="dev-mode-toggle">
-                <label for="dev-mode-toggle">开发者模式 (显示所有伏兵)</label>
-            </div>
-            <p><strong>你的身份:</strong> <span id="my-identity">N/A</span></p>
+            <p id="auth-status"></p>
         </div>
-        <div id="game-info">
-            <div id="status-message">等待对手连接...</div>
-            <div class="player-stats">
-                <div class="stat p1">
-                    <strong>P1: <span id="p1-name">...</span></strong>
-                    <span>额外落子: <span id="p1-extra">0</span></span>
-                    <span class="timer">时间: <span id="p1-timer">--</span>s</span>
+    </div>
+
+
+    <div id="app-root" style="display: none;">
+
+        <div id="user-info-bar">
+            <span>欢迎, <strong id="user-info-username">...</strong> (积分: <strong id="user-info-score">0</strong>)</span>
+            <button id="logout-btn">登出</button>
+        </div>
+
+        <div class="lobby-container" id="lobby-container">
+            <h3>匹配大厅</h3>
+            <button id="find-match-btn">寻找对战</button>
+            <p id="lobby-status">请点击 "寻找对战" 开始匹配...</p>
+        </div>
+
+        <div class="game-container" id="game-container" style="display: none;">
+            <div class="controls">
+                <button id="refresh-btn">刷新状态(重连)</button>
+                <p><strong>游戏ID:</strong> <span id="game-id">N/A</span></p>
+                <div class="dev-mode">
+                    <input type="checkbox" id="dev-mode-toggle">
+                    <label for="dev-mode-toggle">开发者模式 (显示所有伏兵)</label>
                 </div>
-                <div class="stat p2">
-                    <strong>P2: <span id="p2-name">...</span></strong>
-                    <span>额外落子: <span id="p2-extra">0</span></span>
-                    <span class="timer">时间: <span id="p2-timer">--</span>s</span>
+                <p><strong>你的身份:</strong> <span id="my-identity">N/A</span></p>
+            </div>
+            <div id="game-info">
+                <div id="status-message">等待对手连接...</div>
+                <div class="player-stats">
+                    <div class="stat p1">
+                        <strong>P1: <span id="p1-name">...</span></strong>
+                        <span>额外落子: <span id="p1-extra">0</span></span>
+                        <span class="timer">时间: <span id="p1-timer">--</span>s</span>
+                    </div>
+                    <div class="stat p2">
+                        <strong>P2: <span id="p2-name">...</span></strong>
+                        <span>额外落子: <span id="p2-extra">0</span></span>
+                        <span class="timer">时间: <span id="p2-timer">--</span>s</span>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div id="board" class="board-grid"></div>
+            <div id="board" class="board-grid"></div>
 
-        <div id="game-over-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h2>游戏结束!</h2>
-                <p id="winner-message"></p>
-                <p>P1: <span id="p1-result"></span></p>
-                <p>P2: <span id="p2-result"></span></p>
-                <button id="play-again-btn">返回大厅</button>
+            <div id="game-over-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h2>游戏结束!</h2>
+                    <p id="winner-message"></p>
+                    <p>P1: <span id="p1-result"></span></p>
+                    <p>P2: <span id="p2-result"></span></p>
+                    <button id="play-again-btn">返回大厅</button>
+                </div>
             </div>
         </div>
+
+        <div class="leaderboard-container">
+            <h2>排行榜</h2>
+            <button id="refresh-leaderboard-btn">刷新排行</button>
+            <ul id="leaderboard-list">
+            </ul>
+        </div>
+    </div>
+    <div id="match-found-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>找到对手！</h2>
+            <p>已为您匹配到对手: <strong id="match-opponent-name">...</strong></p>
+            <p>请在 <strong id="match-confirm-timer">30</strong> 秒内点击准备！</p>
+            <button id="match-ready-btn">准备</button>
+            <p id="match-status-message"></p>
+        </div>
     </div>
 
-    <div class="leaderboard-container">
-        <h2>排行榜</h2>
-        <button id="refresh-leaderboard-btn">刷新排行</button>
-        <ul id="leaderboard-list">
-        </ul>
-    </div>
-</div> <div id="match-found-modal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <h2>找到对手！</h2>
-        <p>已为您匹配到对手: <strong id="match-opponent-name">...</strong></p>
-        <p>请在 <strong id="match-confirm-timer">30</strong> 秒内点击准备！</p>
-        <button id="match-ready-btn">准备</button>
-        <p id="match-status-message"></p>
-    </div>
-</div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-
-<script src="main.js" type="module"></script>
+    <script src="main.js" type="module"></script>
 </body>
+
 </html>

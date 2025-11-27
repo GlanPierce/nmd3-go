@@ -92,6 +92,19 @@ export async function fetchLeaderboard() {
     }
 }
 
+// (新增) 检查是否有活跃游戏
+export async function fetchActiveGame() {
+    try {
+        const response = await fetch('/api/game/active');
+        if (response.status === 204) return null; // No active game
+        if (!response.ok) throw new Error('Failed to fetch active game');
+        return await response.json();
+    } catch (error) {
+        console.error("Error fetching active game:", error);
+        return null;
+    }
+}
+
 // 辅助函数
 function setAuthStatus(message, color) {
     UI.authStatus.textContent = message;
