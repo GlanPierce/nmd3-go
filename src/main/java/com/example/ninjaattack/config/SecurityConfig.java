@@ -65,6 +65,8 @@ public class SecurityConfig {
                                 "/ui.js",
                                 "/lobby.js",
                                 "/game.js",
+                                "/game-manager.js",
+                                "/constants.js",
                                 "/*.js.map",
                                 "/*.ico",
                                 "/ws/**", // WebSocket 连接握手

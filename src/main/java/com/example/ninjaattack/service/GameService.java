@@ -4,23 +4,15 @@ import com.example.ninjaattack.logic.GameEngine;
 import com.example.ninjaattack.model.domain.*;
 import com.example.ninjaattack.model.dto.GameStateDTO;
 import com.example.ninjaattack.model.dto.MoveRequest;
-import com.example.ninjaattack.model.entity.GameEntity;
-import com.example.ninjaattack.repository.GameRepository;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.scheduling.TaskScheduler;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class GameService {
@@ -28,123 +20,55 @@ public class GameService {
     private final Map<String, Game> activeGames = new ConcurrentHashMap<>();
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
-    private final TaskScheduler taskScheduler;
     private final GameEngine gameEngine;
-    private final GameRepository gameRepository;
-    private final ObjectMapper objectMapper;
+
+    // New Services
+    private final GameTimerService gameTimerService;
+    private final GamePersistenceService gamePersistenceService;
 
     private final Map<String, Set<String>> readyPlayersByGame = new ConcurrentHashMap<>();
 
-    public GameService(UserService userService, SimpMessagingTemplate messagingTemplate, TaskScheduler taskScheduler,
-            GameRepository gameRepository, ObjectMapper objectMapper) {
+    public GameService(UserService userService,
+            SimpMessagingTemplate messagingTemplate,
+            GameTimerService gameTimerService,
+            GamePersistenceService gamePersistenceService) {
         this.userService = userService;
         this.messagingTemplate = messagingTemplate;
-        this.taskScheduler = taskScheduler;
-        this.gameRepository = gameRepository;
-        this.objectMapper = objectMapper;
-        // [NEW] Configure ObjectMapper to be lenient
-        this.objectMapper.configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                false);
+        this.gameTimerService = gameTimerService;
+        this.gamePersistenceService = gamePersistenceService;
         this.gameEngine = new GameEngine();
     }
 
-    // [NEW] Load active games from DB on startup
     @PostConstruct
     public void loadActiveGames() {
-        List<GameEntity> entities = gameRepository.findByStatus("IN_PROGRESS");
-        for (GameEntity entity : entities) {
-            try {
-                Game game = objectMapper.readValue(entity.getGameStateJson(), Game.class);
-                activeGames.put(game.getGameId(), game);
+        List<Game> games = gamePersistenceService.loadActiveGames();
+        for (Game game : games) {
+            activeGames.put(game.getGameId(), game);
 
-                // Restore timers
-                long now = System.currentTimeMillis();
-                if (game.getPhase() == GamePhase.AMBUSH) {
-                    long deadline = Math.max(game.getP1ActionDeadline(), game.getP2ActionDeadline());
-                    long delay = Math.max(0, deadline - now);
-                    if (delay > 0) {
-                        scheduleAmbushTimeout(game, (int) (delay / 1000));
-                    } else {
-                        // Already expired, trigger immediately
-                        handleAmbushTimeoutTask(game.getGameId());
-                    }
-                } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
-                    long deadline = "p1".equals(game.getCurrentTurnPlayerId()) ? game.getP1ActionDeadline()
-                            : game.getP2ActionDeadline();
-                    long delay = Math.max(0, deadline - now);
-                    if (delay > 0) {
-                        scheduleTimeout(game, game.getCurrentTurnPlayerId(), (int) (delay / 1000));
-                    } else {
-                        handleTimeoutTask(game.getGameId(), game.getCurrentTurnPlayerId());
-                    }
+            // Restore timers
+            long now = System.currentTimeMillis();
+            if (game.getPhase() == GamePhase.AMBUSH) {
+                long deadline = Math.max(game.getP1ActionDeadline(), game.getP2ActionDeadline());
+                long delay = Math.max(0, deadline - now);
+                if (delay > 0) {
+                    gameTimerService.scheduleAmbushTimer(game, (int) (delay / 1000),
+                            () -> handleAmbushTimeoutTask(game.getGameId()));
+                } else {
+                    handleAmbushTimeoutTask(game.getGameId());
                 }
-
-                System.out.println("Loaded game " + game.getGameId() + " from DB and restored timers.");
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
+            } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
+                long deadline = "p1".equals(game.getCurrentTurnPlayerId()) ? game.getP1ActionDeadline()
+                        : game.getP2ActionDeadline();
+                long delay = Math.max(0, deadline - now);
+                if (delay > 0) {
+                    String playerId = game.getCurrentTurnPlayerId();
+                    gameTimerService.scheduleTurnTimer(game, playerId, (int) (delay / 1000),
+                            () -> handleTimeoutTask(game.getGameId(), playerId));
+                } else {
+                    handleTimeoutTask(game.getGameId(), game.getCurrentTurnPlayerId());
+                }
             }
-        }
-    }
-
-    // [OPTIMIZED] Async Save game state to DB
-    @Async // Run in background thread
-    public void saveGameState(Game game) {
-        try {
-            GameEntity entity = new GameEntity();
-            entity.setId(game.getGameId());
-            entity.setP1Username(game.getP1().getUsername());
-            entity.setP2Username(game.getP2().getUsername());
-            entity.setStatus(game.getPhase() == GamePhase.GAME_OVER ? "FINISHED"
-                    : (game.getPhase() == GamePhase.PRE_GAME ? "PRE_GAME" : "IN_PROGRESS"));
-            entity.setGameStateJson(objectMapper.writeValueAsString(game));
-            gameRepository.save(entity);
-        } catch (Exception e) {
-            System.err.println("Error saving game state: " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    // [OPTIMIZED] Event-driven timer scheduling instead of polling
-    private void scheduleTimeout(Game game, String playerId, int seconds) {
-        // Cancel existing timer for this player if any
-        cancelTimer(game);
-
-        long delayMs = seconds * 1000L;
-        Date startTime = new Date(System.currentTimeMillis() + delayMs);
-
-        // Schedule the task
-        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
-            handleTimeoutTask(game.getGameId(), playerId);
-        }, startTime);
-
-        game.setTurnTimer(future);
-
-        // Update deadline for frontend display
-        game.startTimer(playerId, seconds);
-    }
-
-    private void scheduleAmbushTimeout(Game game, int seconds) {
-        cancelTimer(game);
-
-        long delayMs = seconds * 1000L;
-        Date startTime = new Date(System.currentTimeMillis() + delayMs);
-
-        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
-            handleAmbushTimeoutTask(game.getGameId());
-        }, startTime);
-
-        game.setTurnTimer(future);
-
-        // Set deadlines for BOTH players
-        game.startTimer("p1", seconds);
-        game.startTimer("p2", seconds);
-    }
-
-    private void cancelTimer(Game game) {
-        game.disarmTimer("p1");
-        game.disarmTimer("p2");
-        if (game.getTurnTimer() != null && !game.getTurnTimer().isDone()) {
-            game.getTurnTimer().cancel(false);
+            System.out.println("Loaded game " + game.getGameId() + " from DB and restored timers.");
         }
     }
 
@@ -155,12 +79,9 @@ public class GameService {
             return;
 
         synchronized (game) {
-            // Double check if phase is still valid for timeout
             if (game.getPhase() == GamePhase.GAME_OVER)
                 return;
 
-            // Check if the deadline actually passed (to avoid race conditions where move
-            // came in just now)
             long now = System.currentTimeMillis();
             long deadline = "p1".equals(playerId) ? game.getP1ActionDeadline() : game.getP2ActionDeadline();
 
@@ -174,7 +95,7 @@ public class GameService {
                 } else {
                     handleGameOver(game);
                 }
-                saveGameState(game);
+                gamePersistenceService.saveGame(game);
             }
         }
     }
@@ -190,33 +111,22 @@ public class GameService {
                 return;
 
             long now = System.currentTimeMillis();
-            // Check P1
             if (now >= game.getP1ActionDeadline() && game.getP1AmbushesPlacedThisRound() < 2) {
                 gameEngine.handleTimeout(game, "p1");
             }
-            // Check P2
             if (now >= game.getP2ActionDeadline() && game.getP2AmbushesPlacedThisRound() < 2) {
                 gameEngine.handleTimeout(game, "p2");
             }
 
             updateTimersAfterMove(game);
-            saveGameState(game);
+            gamePersistenceService.saveGame(game);
             broadcastGameState(gameId);
         }
     }
 
     private void handleMatchTimeout(Game game) {
         broadcastGameState(game.getGameId(), GamePhase.MATCH_CANCELLED, "有玩家未能在30秒内确认准备。");
-        // Update status to FINISHED/CANCELLED in DB?
-        try {
-            GameEntity entity = gameRepository.findById(game.getGameId()).orElse(new GameEntity());
-            entity.setId(game.getGameId());
-            entity.setStatus("CANCELLED");
-            gameRepository.save(entity);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
+        gamePersistenceService.updateGameStatus(game.getGameId(), "CANCELLED");
         cleanupGame(game.getGameId());
     }
 
@@ -252,15 +162,11 @@ public class GameService {
         readyPlayersByGame.remove(gameId);
     }
 
-    // [NEW] Find active game for a user
     public GameStateDTO findActiveGameByUsername(String username) {
         for (Game game : activeGames.values()) {
-            // Skip finished games
             if (game.getPhase() == GamePhase.GAME_OVER || game.getPhase() == GamePhase.MATCH_CANCELLED) {
                 continue;
             }
-
-            // Check if user is in this game
             if (username.equals(game.getP1().getUsername()) || username.equals(game.getP2().getUsername())) {
                 synchronized (game) {
                     return mapToDTO(game);
@@ -270,9 +176,8 @@ public class GameService {
         return null;
     }
 
-    // --- 核心游戏 API ---
+    // --- Core Game API ---
 
-    // [NEW] Validate player identity
     private void validatePlayerIdentity(Game game, String playerId, String username) {
         String expectedUsername = null;
         if ("p1".equals(playerId)) {
@@ -293,17 +198,15 @@ public class GameService {
         activeGames.put(game.getGameId(), game);
         readyPlayersByGame.put(game.getGameId(), new HashSet<>());
 
-        saveGameState(game); // [NEW] Save initial state
+        gamePersistenceService.saveGame(game);
 
         // Schedule match confirmation timeout
-        Date deadline = new Date(System.currentTimeMillis() + 30000L);
-        ScheduledFuture<?> future = taskScheduler.schedule(() -> {
+        gameTimerService.scheduleMatchTimer(game, 30, () -> {
             Game g = activeGames.get(game.getGameId());
             if (g != null && g.getPhase() == GamePhase.PRE_GAME) {
                 handleMatchTimeout(g);
             }
-        }, deadline);
-        game.setMatchTimer(future);
+        });
 
         return game;
     }
@@ -329,10 +232,7 @@ public class GameService {
             if (readyPlayers.contains("p1") && readyPlayers.contains("p2")) {
                 System.out.println("双方准备就绪, 游戏 " + gameId + " 开始!");
                 game.setConfirmationDeadline(Long.MAX_VALUE);
-                // Cancel match timer
-                if (game.getMatchTimer() != null) {
-                    game.getMatchTimer().cancel(false);
-                }
+                gameTimerService.cancelMatchTimer(game);
                 startGame(game);
             } else {
                 broadcastGameState(game.getGameId(), GamePhase.PRE_GAME, "玩家 " + playerId + " 已准备!");
@@ -342,12 +242,8 @@ public class GameService {
 
     private void startGame(Game game) {
         gameEngine.startGame(game);
-
-        // Start shared timer for Ambush phase
-        scheduleAmbushTimeout(game, 15);
-
-        saveGameState(game); // [NEW] Save started state
-
+        gameTimerService.scheduleAmbushTimer(game, 15, () -> handleAmbushTimeoutTask(game.getGameId()));
+        gamePersistenceService.saveGame(game);
         broadcastGameState(game.getGameId());
     }
 
@@ -360,21 +256,18 @@ public class GameService {
             validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placeAmbush(game, move);
 
-            // Check if BOTH players are done
             boolean p1Done = game.getP1AmbushesPlacedThisRound() == 2;
             boolean p2Done = game.getP2AmbushesPlacedThisRound() == 2;
 
             if (p1Done && p2Done) {
-                // Only cancel timer if EVERYONE is done
-                cancelTimer(game);
+                gameTimerService.cancelTurnTimer(game);
             }
 
             if (game.getPhase() == GamePhase.PLACEMENT) {
                 updateTimersAfterMove(game);
             }
 
-            saveGameState(game); // [NEW] Save after move
-
+            gamePersistenceService.saveGame(game);
             broadcastGameState(gameId);
         }
     }
@@ -392,22 +285,18 @@ public class GameService {
                 handleGameOver(game);
             } else {
                 updateTimersAfterMove(game);
-                saveGameState(game); // [NEW] Save after move
+                gamePersistenceService.saveGame(game);
                 broadcastGameState(gameId);
             }
         }
     }
 
     private void updateTimersAfterMove(Game game) {
-        // If we are here, it means we need to set up the NEXT timer.
-        // For Ambush phase, this is only called if we transitioned BACK to Ambush (next
-        // round)
-        // or if we transitioned TO Placement.
-
         if (game.getPhase() == GamePhase.AMBUSH) {
-            scheduleAmbushTimeout(game, 15);
+            gameTimerService.scheduleAmbushTimer(game, 15, () -> handleAmbushTimeoutTask(game.getGameId()));
         } else if (game.getPhase() == GamePhase.PLACEMENT || game.getPhase() == GamePhase.EXTRA_ROUNDS) {
-            scheduleTimeout(game, game.getCurrentTurnPlayerId(), 15);
+            String playerId = game.getCurrentTurnPlayerId();
+            gameTimerService.scheduleTurnTimer(game, playerId, 15, () -> handleTimeoutTask(game.getGameId(), playerId));
         }
     }
 
@@ -416,7 +305,7 @@ public class GameService {
         if (result == null)
             return;
 
-        cancelTimer(game);
+        gameTimerService.cancelTurnTimer(game);
 
         if ("p1".equals(result.getWinnerId())) {
             userService.applyGameResult(game.getP1().getUsername(), game.getP2().getUsername());
@@ -424,29 +313,21 @@ public class GameService {
             userService.applyGameResult(game.getP2().getUsername(), game.getP1().getUsername());
         }
 
-        saveGameState(game); // [NEW] Save final state
-
+        gamePersistenceService.saveGame(game);
         broadcastGameState(game.getGameId());
         cleanupGame(game.getGameId());
     }
 
     private Game findGame(String gameId) {
-        // First check memory
         Game game = activeGames.get(gameId);
         if (game != null)
             return game;
 
-        // Then check DB (for recovery)
-        return gameRepository.findById(gameId).map(entity -> {
-            try {
-                Game loadedGame = objectMapper.readValue(entity.getGameStateJson(), Game.class);
-                activeGames.put(gameId, loadedGame);
-                return loadedGame;
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-                return null;
-            }
-        }).orElse(null);
+        game = gamePersistenceService.loadGame(gameId);
+        if (game != null) {
+            activeGames.put(gameId, game);
+        }
+        return game;
     }
 
     private GameStateDTO mapToDTO(Game game) {

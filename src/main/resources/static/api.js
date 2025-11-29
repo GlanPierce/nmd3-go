@@ -52,6 +52,8 @@ export async function handleLogin(event, onLoginSuccess) {
         const user = await response.json();
         onLoginSuccess(user); // 登录成功，调用主回调
     } catch (error) {
+        console.error(error);
+        alert("Login Error: " + error.message); // Debug
         setAuthStatus(`登录失败: ${error.message}`, '#d9534f');
     }
 }
@@ -107,6 +109,8 @@ export async function fetchActiveGame() {
 
 // 辅助函数
 function setAuthStatus(message, color) {
-    UI.authStatus.textContent = message;
-    UI.authStatus.style.color = color;
+    if (UI.authStatus) {
+        UI.authStatus.textContent = message;
+        UI.authStatus.style.color = color;
+    }
 }
