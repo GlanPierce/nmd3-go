@@ -2,81 +2,86 @@ package com.example.ninjaattack.service;
 
 import com.example.ninjaattack.model.domain.User;
 import com.example.ninjaattack.repository.UserRepository;
-import org.springframework.context.annotation.Lazy; // (新增) 解决循环依赖
-import org.springframework.security.core.userdetails.UserDetails; // (新增)
-import org.springframework.security.core.userdetails.UserDetailsService; // (新增)
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // (新增)
-import org.springframework.security.crypto.password.PasswordEncoder; // (新增)
+import org.springframework.context.annotation.Lazy;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // (新增)
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-@Transactional // (新增) 确保 Service 方法在数据库事务中运行
-// (修改) 实现 UserDetailsService 接口
+@Transactional
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // (新增)
+    private final PasswordEncoder passwordEncoder;
+    private final EloRatingService eloRatingService;
 
-    /**
-     * (修改) 构造函数注入 PasswordEncoder
-     * (新增) @Lazy 解决 SecurityConfig 和 UserService 之间的循环依赖问题
-     */
-    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, @Lazy PasswordEncoder passwordEncoder,
+            EloRatingService eloRatingService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.eloRatingService = eloRatingService;
     }
 
-    /**
-     * (新增) 这是 UserDetailsService 接口要求必须实现的方法。
-     * Spring Security 会在登录时自动调用此方法。
-     */
     @Override
-    @Transactional(readOnly = true) // 这是一个只读操作
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // (修改) 从新的 JPA 仓库中查找用户
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("未找到用户: " + username));
     }
 
-    /**
-     * (新增) 注册新用户的方法
-     * (我们将在下一步的 AuthController 中调用它)
-     */
     public User register(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new IllegalStateException("用户名已存在");
         }
-        // (新增) 必须加密密码！
         String encodedPassword = passwordEncoder.encode(password);
-        User newUser = new User(username, encodedPassword, 0);
+        User newUser = new User(username, encodedPassword, 1200);
         return userRepository.save(newUser);
     }
 
-    /**
-     * (修改) 排行榜逻辑现在使用 JPA
-     */
     @Transactional(readOnly = true)
     public List<User> getLeaderboard() {
         return userRepository.findAllByOrderByScoreDesc();
     }
 
     /**
-     * (修改) 积分结算逻辑现在使用 JPA
+     * Process game result using optimized Elo rating system.
+     * Updates scores and gamesPlayed for both users.
      */
-    public void applyGameResult(String winnerUsername, String loserUsername) {
-        // (修改) 现在我们确信用户存在 (因为他们登录了)
-        User winner = userRepository.findByUsername(winnerUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("未找到胜利者: " + winnerUsername));
-        User loser = userRepository.findByUsername(loserUsername)
-                .orElseThrow(() -> new UsernameNotFoundException("未找到失败者: " + loserUsername));
+    public void processGameResult(com.example.ninjaattack.model.domain.Game game) {
+        String p1Username = game.getP1().getUsername();
+        String p2Username = game.getP2().getUsername();
 
-        winner.setScore(winner.getScore() + 3);
-        loser.setScore(Math.max(0, loser.getScore() - 2));
+        User p1 = userRepository.findByUsername(p1Username)
+                .orElseThrow(() -> new UsernameNotFoundException("Player 1 not found: " + p1Username));
+        User p2 = userRepository.findByUsername(p2Username)
+                .orElseThrow(() -> new UsernameNotFoundException("Player 2 not found: " + p2Username));
 
-        userRepository.save(winner);
-        userRepository.save(loser);
+        // Determine actual scores
+        double p1ActualScore = eloRatingService.getActualScore("p1", game.getResult());
+        double p2ActualScore = eloRatingService.getActualScore("p2", game.getResult());
+
+        // Determine first mover
+        boolean p1IsFirst = "p1".equals(game.getFirstMovePlayerId());
+
+        // Calculate new ratings
+        int p1NewRating = eloRatingService.calculateNewRating(p1.getScore(), p2.getScore(), p1ActualScore, p1IsFirst,
+                p1.getGamesPlayed());
+        int p2NewRating = eloRatingService.calculateNewRating(p2.getScore(), p1.getScore(), p2ActualScore, !p1IsFirst,
+                p2.getGamesPlayed());
+
+        // Update users
+        p1.setScore(p1NewRating);
+        p1.setGamesPlayed(p1.getGamesPlayed() + 1);
+
+        p2.setScore(p2NewRating);
+        p2.setGamesPlayed(p2.getGamesPlayed() + 1);
+
+        userRepository.save(p1);
+        userRepository.save(p2);
     }
 }

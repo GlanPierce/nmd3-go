@@ -86,7 +86,8 @@ export async function fetchLeaderboard() {
         UI.leaderboardList.innerHTML = ''; // 清空
         leaderboard.forEach(user => {
             const li = document.createElement('li');
-            li.innerHTML = `<span>${user.username}</span> <span>${user.score} 积分</span>`;
+            // Update: Display Elo and games played
+            li.innerHTML = `<span>${user.username}</span> <span>Elo: ${user.score} <small>(${user.gamesPlayed} 场)</small></span>`;
             UI.leaderboardList.appendChild(li);
         });
     } catch (error) {

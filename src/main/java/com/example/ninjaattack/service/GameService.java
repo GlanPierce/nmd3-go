@@ -307,11 +307,8 @@ public class GameService {
 
         gameTimerService.cancelTurnTimer(game);
 
-        if ("p1".equals(result.getWinnerId())) {
-            userService.applyGameResult(game.getP1().getUsername(), game.getP2().getUsername());
-        } else if ("p2".equals(result.getWinnerId())) {
-            userService.applyGameResult(game.getP2().getUsername(), game.getP1().getUsername());
-        }
+        // Use the new unified method for Elo calculation
+        userService.processGameResult(game);
 
         gamePersistenceService.saveGame(game);
         broadcastGameState(game.getGameId());
