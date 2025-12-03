@@ -30,8 +30,12 @@ public class GamePersistenceService {
     @Async
     public void saveGame(Game game) {
         try {
-            GameEntity entity = new GameEntity();
-            entity.setId(game.getGameId());
+            GameEntity entity = gameRepository.findById(game.getGameId()).orElse(new GameEntity());
+
+            if (entity.getId() == null) {
+                entity.setId(game.getGameId());
+            }
+
             entity.setP1Username(game.getP1().getUsername());
             entity.setP2Username(game.getP2().getUsername());
             entity.setStatus(game.getPhase() == GamePhase.GAME_OVER ? "FINISHED"

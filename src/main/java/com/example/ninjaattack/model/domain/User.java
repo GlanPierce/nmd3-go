@@ -32,16 +32,20 @@ public class User implements UserDetails {
     private int score = 1200;
 
     @Column(nullable = false)
-    private int gamesPlayed = 0; // New field for Elo optimization
+    private int gamesPlayed = 0;
 
     @Column(nullable = false)
     private String role = "ROLE_USER";
+
+    @Column(nullable = false)
+    private String avatar = "avatar_1.svg";
 
     public User(String username, String password, int score) {
         this.username = username;
         this.password = password;
         this.score = score;
         this.gamesPlayed = 0;
+        this.avatar = "avatar_1.svg";
     }
 
     @Override

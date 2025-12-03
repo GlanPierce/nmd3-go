@@ -59,6 +59,11 @@ async function onLoginSuccess(user) {
     // 2. 填充用户信息
     if (UI.userInfoUsername) UI.userInfoUsername.textContent = user.username;
     if (UI.userInfoScore) UI.userInfoScore.textContent = user.score;
+    if (document.getElementById('user-avatar-small')) {
+        // 如果 user 对象包含 avatar 字段，则使用它，否则使用默认值
+        const avatar = user.avatar || 'avatar_1.svg';
+        document.getElementById('user-avatar-small').src = `assets/avatars/${avatar}`;
+    }
 
     // 3. (关键修改)
     // 将 user 对象 (包含 user.id) 传递给 lobby，并等待连接成功
@@ -110,4 +115,12 @@ function onReturnToLobby(message) {
 
     if (UI.lobbyStatus) UI.lobbyStatus.textContent = message;
     if (UI.findMatchBtn) UI.findMatchBtn.disabled = false;
+
+    // Refresh user info (score, etc.)
+    import('./api.js').then(module => {
+        module.checkLoginStatus((user) => {
+            if (UI.userInfoUsername) UI.userInfoUsername.textContent = user.username;
+            if (UI.userInfoScore) UI.userInfoScore.textContent = user.score;
+        }, () => { });
+    });
 }

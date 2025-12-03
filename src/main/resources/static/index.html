@@ -44,8 +44,15 @@
     <div id="app-root" style="display: none;">
 
         <div id="user-info-bar">
-            <span>欢迎, <strong id="user-info-username">...</strong> (Elo: <strong id="user-info-score">0</strong>)</span>
-            <button id="logout-btn">登出</button>
+            <span>
+                <img id="user-avatar-small" src="assets/avatars/avatar_1.svg" alt="Avatar"
+                    style="width: 30px; height: 30px; border-radius: 50%; vertical-align: middle; margin-right: 10px;">
+                欢迎, <strong id="user-info-username">...</strong> (Elo: <strong id="user-info-score">0</strong>)
+            </span>
+            <div>
+                <button id="profile-btn" style="background: #007bff; margin-right: 10px;">个人中心</button>
+                <button id="logout-btn">登出</button>
+            </div>
         </div>
 
         <div class="lobby-container" id="lobby-container">
@@ -99,6 +106,48 @@
             </ul>
         </div>
     </div>
+
+    <div id="profile-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>个人中心</h2>
+            <div style="display: flex; gap: 20px; text-align: left;">
+                <div style="flex: 1;">
+                    <h3>当前头像</h3>
+                    <img id="profile-current-avatar" src="assets/avatars/avatar_1.svg" alt="Current Avatar"
+                        style="width: 100px; height: 100px; border-radius: 50%; display: block; margin: 0 auto;">
+                    <p style="text-align: center; margin-top: 10px;">
+                        <strong id="profile-username">...</strong><br>
+                        Elo: <span id="profile-score">0</span><br>
+                        场次: <span id="profile-games">0</span>
+                    </p>
+                </div>
+                <div style="flex: 2;">
+                    <h3>更换头像</h3>
+                    <div id="avatar-selection"
+                        style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                        <img src="assets/avatars/avatar_1.svg" class="avatar-option" data-avatar="avatar_1.svg"
+                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                        <img src="assets/avatars/avatar_2.svg" class="avatar-option" data-avatar="avatar_2.svg"
+                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                        <img src="assets/avatars/avatar_3.svg" class="avatar-option" data-avatar="avatar_3.svg"
+                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                        <img src="assets/avatars/avatar_4.svg" class="avatar-option" data-avatar="avatar_4.svg"
+                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                    </div>
+                    <button id="save-avatar-btn"
+                        style="margin-top: 20px; width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">保存头像</button>
+                </div>
+            </div>
+            <hr style="margin: 20px 0;">
+            <div id="profile-history-section">
+                <h3>历史记录 (开发中)</h3>
+                <p>暂无记录</p>
+            </div>
+            <button id="close-profile-btn"
+                style="margin-top: 20px; padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
+        </div>
+    </div>
+
     <div id="match-found-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <h2>找到对手！</h2>

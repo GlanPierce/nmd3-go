@@ -9,4 +9,6 @@ public class GameResult {
     private int p2MaxConnection;
     private int p1PieceCount;
     private int p2PieceCount;
+    private int p1RatingChange;
+    private int p2RatingChange;
 }

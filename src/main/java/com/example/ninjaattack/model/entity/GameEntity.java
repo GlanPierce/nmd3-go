@@ -25,6 +25,7 @@ public class GameEntity {
     private String gameStateJson;
 
     @CreationTimestamp
+    @Column(updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp

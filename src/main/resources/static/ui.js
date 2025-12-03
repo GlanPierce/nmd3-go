@@ -17,7 +17,18 @@ export function initUI() {
     UI.userInfoBar = document.getElementById('user-info-bar');
     UI.userInfoUsername = document.getElementById('user-info-username');
     UI.userInfoScore = document.getElementById('user-info-score');
+    UI.userAvatarSmall = document.getElementById('user-avatar-small');
+    UI.profileBtn = document.getElementById('profile-btn');
     UI.logoutBtn = document.getElementById('logout-btn');
+
+    // --- Profile Modal ---
+    UI.profileModal = document.getElementById('profile-modal');
+    UI.profileUsername = document.getElementById('profile-username');
+    UI.profileScore = document.getElementById('profile-score');
+    UI.profileCurrentAvatar = document.getElementById('profile-current-avatar');
+    UI.avatarOptions = document.querySelectorAll('.avatar-option');
+    UI.saveAvatarBtn = document.getElementById('save-avatar-btn');
+    UI.closeProfileBtn = document.getElementById('close-profile-btn');
 
     // --- Lobby ---
     UI.lobbyContainer = document.getElementById('lobby-container');

@@ -17,19 +17,22 @@ body {
     align-items: center;
     z-index: 1000;
 }
+
 #auth-box {
     background: #fff;
     padding: 30px 40px;
     border-radius: 8px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
     width: 100%;
     max-width: 400px;
     text-align: center;
 }
+
 #auth-box h2 {
     margin-top: 0;
     margin-bottom: 20px;
 }
+
 #auth-box h3 {
     margin-top: 15px;
     margin-bottom: 10px;
@@ -37,11 +40,13 @@ body {
     color: #555;
     font-size: 1.1em;
 }
+
 #auth-box form {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
+
 #auth-box input[type="text"],
 #auth-box input[type="password"] {
     padding: 12px;
@@ -49,6 +54,7 @@ body {
     border: 1px solid #ccc;
     border-radius: 6px;
 }
+
 #auth-box button {
     padding: 12px;
     font-size: 16px;
@@ -59,20 +65,25 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
 }
+
 #auth-box button:hover {
     background-color: #0056b3;
 }
+
 #auth-box #register-form button {
     background-color: #28a745;
 }
+
 #auth-box #register-form button:hover {
     background-color: #1e7e34;
 }
+
 #auth-box hr {
     border: 0;
     border-top: 1px solid #eee;
     margin: 25px 0;
 }
+
 #auth-status {
     margin-top: 15px;
     font-size: 0.9em;
@@ -104,10 +115,11 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
     z-index: 100;
     box-sizing: border-box;
 }
+
 #user-info-bar button {
     background: #d9534f;
     color: white;
@@ -116,6 +128,7 @@ body {
     border-radius: 4px;
     cursor: pointer;
 }
+
 #user-info-bar button:hover {
     background: #c9302c;
 }
@@ -129,6 +142,7 @@ body {
     margin-top: 60px;
     width: 300px;
 }
+
 .lobby-container button {
     width: 100%;
     padding: 12px;
@@ -139,6 +153,7 @@ body {
     border-radius: 6px;
     cursor: pointer;
 }
+
 .lobby-container button:hover {
     background-color: #0056b3;
 }
@@ -163,10 +178,12 @@ body {
     margin-top: 60px;
 }
 
-h1, h2 {
+h1,
+h2 {
     text-align: center;
     color: #1a1a1a;
 }
+
 .leaderboard-container h2 {
     margin-top: 0;
 }
@@ -180,7 +197,9 @@ h1, h2 {
     gap: 10px;
     align-items: center;
 }
-.controls button, .controls select {
+
+.controls button,
+.controls select {
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 6px;
@@ -188,13 +207,16 @@ h1, h2 {
     cursor: pointer;
     background-color: #f9f9f9;
 }
+
 .controls button:hover {
     background-color: #e9e9e9;
 }
+
 #game-info {
     margin-bottom: 20px;
     text-align: center;
 }
+
 #status-message {
     font-size: 1.1em;
     font-weight: bold;
@@ -204,20 +226,33 @@ h1, h2 {
     background: #fdf7f7;
     border-radius: 6px;
 }
+
 .player-stats {
     display: flex;
     justify-content: space-around;
     margin-top: 15px;
 }
+
 .stat {
     display: flex;
     flex-direction: column;
     padding: 10px;
     border-radius: 6px;
 }
-.stat.p1 { background-color: #e6f7ff; border: 1px solid #b3e0ff; }
-.stat.p2 { background-color: #fff0e6; border: 1px solid #ffd6b3; }
-.stat strong { margin-bottom: 5px; }
+
+.stat.p1 {
+    background-color: #e6f7ff;
+    border: 1px solid #b3e0ff;
+}
+
+.stat.p2 {
+    background-color: #fff0e6;
+    border: 1px solid #ffd6b3;
+}
+
+.stat strong {
+    margin-bottom: 5px;
+}
 
 /* 棋盘 */
 .board-grid {
@@ -230,6 +265,7 @@ h1, h2 {
     background-color: #d2b48c;
     margin: 0 auto;
 }
+
 .square {
     width: 100%;
     height: 100%;
@@ -241,6 +277,7 @@ h1, h2 {
     position: relative;
     cursor: pointer;
 }
+
 .square:hover {
     background-color: rgba(255, 255, 255, 0.2);
 }
@@ -250,11 +287,13 @@ h1, h2 {
     width: 70%;
     height: 70%;
     border-radius: 50%;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
+
 .piece.p1 {
     background: radial-gradient(circle at 65% 35%, white, #333 60%);
 }
+
 .piece.p2 {
     background: radial-gradient(circle at 65% 35%, white, #c00000 60%);
 }
@@ -267,12 +306,14 @@ h1, h2 {
     border-radius: 3px;
     opacity: 0.7;
 }
+
 .square.p1-ambush .ambush-indicator.p1 {
     top: 3px;
     left: 3px;
     background-color: #333;
     border: 1px solid white;
 }
+
 .square.p2-ambush .ambush-indicator.p2 {
     bottom: 3px;
     right: 3px;
@@ -287,7 +328,7 @@ h1, h2 {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0, 0, 0, 0.4);
 
     /* ****** 核心修复: Flexbox 居中 ****** */
     display: flex;
@@ -296,26 +337,40 @@ h1, h2 {
 
     z-index: 1000;
 }
+
 .modal-content {
     background-color: #fefefe;
     padding: 20px;
     border: 1px solid #888;
     width: 80%;
 
-    /* ****** 核心修复: 移除 margin: 15% auto; ****** */
     max-width: 400px;
     min-height: 150px;
+    max-height: 90vh;
+    /* Prevent modal from exceeding viewport height */
     overflow-y: auto;
 
     text-align: center;
     border-radius: 8px;
 }
 
+/* 历史记录区域样式 */
+#profile-history-section {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+}
+
 /* --- 特定弹窗样式 --- */
 #match-found-modal .modal-content {
     background-color: #fff;
     border: 3px solid #28a745;
-    max-width: 350px; /* 让它比游戏结束弹窗略窄 */
+    max-width: 350px;
+    /* 让它比游戏结束弹窗略窄 */
 }
 
 #match-found-modal #match-opponent-name {
@@ -353,19 +408,23 @@ h1, h2 {
     list-style-type: none;
     padding: 0;
 }
+
 #leaderboard-list li {
     padding: 8px;
     border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
 }
+
 #leaderboard-list li:last-child {
     border-bottom: none;
 }
+
 #leaderboard-list li span:last-child {
     font-weight: bold;
     color: #007bff;
 }
+
 .controls .dev-mode {
     display: flex;
     align-items: center;
@@ -376,21 +435,25 @@ h1, h2 {
     padding: 5px 10px;
     border-radius: 6px;
 }
+
 .controls .dev-mode label {
     margin-left: 5px;
     cursor: pointer;
     font-size: 13px;
     color: #d46b08;
 }
+
 .controls .dev-mode input {
     cursor: pointer;
 }
+
 .stat .timer {
     margin-top: 5px;
     font-weight: bold;
     color: #333;
     transition: all 0.3s;
 }
+
 .stat .timer.timing-out {
     color: #d9534f;
     transform: scale(1.1);
@@ -400,7 +463,9 @@ h1, h2 {
 #match-found-modal #match-status-message {
     /* 预留足够的空间显示最长的消息（例如：'玩家 p1 已准备!'） */
     min-width: 200px;
-    height: 1.2em; /* 确保高度固定 */
-    display: block; /* 保证 min-width 生效 */
+    height: 1.2em;
+    /* 确保高度固定 */
+    display: block;
+    /* 保证 min-width 生效 */
     margin-top: 10px;
 }

@@ -71,7 +71,8 @@ public class SecurityConfig {
                                 "/*.ico",
                                 "/ws/**", // WebSocket 连接握手
                                 "/api/auth/**", // 认证 API
-                                "/api/leaderboard" // 排行榜
+                                "/api/leaderboard", // 排行榜
+                                "/assets/**" // 静态资源 (头像等)
                         ).permitAll()
                         // 其他所有请求都需要登录
                         .anyRequest().authenticated())

@@ -1,8 +1,10 @@
 package com.example.ninjaattack.model.domain;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 public class Player {
     private String id; // "p1" or "p2"
     private String username;
