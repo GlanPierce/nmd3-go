@@ -8,38 +8,147 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body>
+<body class="login-page">
+    <!-- Speedy Black Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="speed-lines"></div>
+        <div class="loading-text">CONNECTING...</div>
+    </div>
+
+    <!-- Dynamic Light Overlay -->
+    <div class="bg-light-overlay">
+        <div class="light-ray"></div>
+        <div class="light-pulse"></div>
+    </div>
+
     <div id="auth-overlay">
-        <div id="auth-box">
-            <h2>忍者棋局 - 登录 / 注册</h2>
+        <!-- Character Images on Left -->
+        <div class="login-characters">
+            <img src="assets/ziyuan_login.png" alt="紫鸢" class="char-ziyuan">
 
-            <form id="login-form">
-                <h3>登录</h3>
-                <input type="text" id="login-username" placeholder="用户名" required>
-                <input type="password" id="login-password" placeholder="密码" required>
-                <button type="submit">登录</button>
-            </form>
+            <!-- Floating Leaves Animation -->
+            <div class="floating-leaves">
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+                <div class="leaf"></div>
+            </div>
 
-            <hr>
+            <img src="assets/weili_login.png" alt="威力" class="char-weili">
+        </div>
 
-            <form id="register-form" novalidate>
-                <h3>注册新账号</h3>
+        <!-- Login Box on Right -->
+        <div class="login-right">
+            <!-- Title Image -->
+            <img src="assets/title.png" alt="忍者棋局" class="login-title-img">
 
-                <input type="text" id="register-username" placeholder="用户名" required minlength="3" maxlength="16"
-                    pattern="^[a-zA-Z0-9_]{3,16}$" title="用户名必须为 3-16 位的字母、数字或下划线。">
+            <div id="auth-box">
+                <!-- Login Container -->
+                <div id="login-container" class="auth-container">
+                    <form id="auth-form" onsubmit="return false;">
+                        <!-- Error Message Area (Top) -->
+                        <p id="auth-status" class="error-msg"></p>
 
-                <input type="password" id="register-password" placeholder="密码" required minlength="8"
-                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$"
-                    title="密码必须至少 8 位，且包含至少一个大写字母、一个小写字母和一个数字。">
+                        <div class="input-group">
+                            <input type="text" id="username" placeholder="请输入用户名" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="password" placeholder="请输入密码" required>
+                        </div>
 
-                <button type="submit">注册</button>
-            </form>
+                        <div class="button-group">
+                            <img src="assets/login_button.png" alt="登录" class="action-btn" id="btn-login"
+                                onclick="handleAuth('login')">
+                        </div>
 
-            <p id="auth-status"></p>
+                        <div class="register-hint">
+                            没有账号？ <span class="register-link" onclick="toggleAuthMode('register')">去注册</span>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Register Container (Initially Hidden/Offset) -->
+                <div id="register-container" class="auth-container">
+                    <form id="register-form" onsubmit="return false;">
+                        <!-- Error Message Area (Top) -->
+                        <p id="reg-status" class="error-msg"></p>
+
+                        <div class="input-group">
+                            <input type="text" id="reg-username" placeholder="用户名 (3-16位)" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="reg-password" placeholder="密码 (8位+)" required>
+                        </div>
+                        <div class="input-group">
+                            <input type="password" id="reg-password-confirm" placeholder="请再次输入密码" required>
+                        </div>
+
+                        <div class="button-group">
+                            <img src="assets/reg_button.png" alt="注册" class="action-btn" id="btn-register"
+                                onclick="handleAuth('register')">
+                        </div>
+
+                        <div class="register-hint">
+                            已有账号？ <span class="register-link" onclick="toggleAuthMode('login')">返回登录</span>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="js/login.js"></script>
+    <script>
+        // Toggle Auth Mode (Slide Effect)
+        function toggleAuthMode(mode) {
+            const authBox = document.getElementById('auth-box');
+            const status = document.getElementById('auth-status');
+            const regStatus = document.getElementById('reg-status');
+
+            // Clear status messages
+            if (status) status.textContent = '';
+            if (regStatus) regStatus.textContent = '';
+
+            if (mode === 'register') {
+                authBox.classList.add('show-register');
+            } else {
+                authBox.classList.remove('show-register');
+            }
+        }
+
+        // Unified Auth Handler
+        function handleAuth(action) {
+            if (action === 'login') {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const status = document.getElementById('auth-status');
+
+                if (!username || !password) {
+                    status.textContent = "请输入用户名和密码";
+                    return;
+                }
+                login(username, password);
+            } else {
+                const username = document.getElementById('reg-username').value;
+                const password = document.getElementById('reg-password').value;
+                const passwordConfirm = document.getElementById('reg-password-confirm').value;
+                const status = document.getElementById('reg-status');
+
+                if (!username || !password || !passwordConfirm) {
+                    status.textContent = "请填写完整信息";
+                    return;
+                }
+                if (password !== passwordConfirm) {
+                    status.textContent = "两次输入的密码不一致";
+                    return;
+                }
+                register(username, password);
+            }
+        }
+    </script>
 </body>
 
 </html>

@@ -84,11 +84,9 @@ body {
     margin: 25px 0;
 }
 
+/* Old Auth Status (Removed/Replaced) */
 #auth-status {
-    margin-top: 15px;
-    font-size: 0.9em;
-    color: #d9534f;
-    min-height: 1.2em;
+    /* Removed default styles */
 }
 
 /* --- 主应用容器和信息栏 --- */
@@ -468,4 +466,734 @@ h2 {
     display: block;
     /* 保证 min-width 生效 */
     margin-top: 10px;
+}
+
+/* =========================================
+   Login Page Theme (Clean & Image Buttons)
+   ========================================= */
+
+body.login-page {
+    background: url('assets/login_bg.jpg') no-repeat center center fixed;
+    background-size: cover;
+    font-family: 'Microsoft YaHei', 'SimHei', sans-serif;
+    position: relative;
+    overflow-x: hidden;
+    /* Prevent horizontal scroll from animations */
+
+    /* Global Cursor Fix */
+    user-select: none;
+    cursor: default;
+}
+
+/* --- Layout Containers --- */
+
+.login-page #auth-overlay {
+    position: relative;
+    /* Ensure z-index works */
+    z-index: 10;
+    /* Above background effects */
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    /* Center everything */
+    align-items: stretch;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+    height: 100vh;
+}
+
+/* Right Side: Login Box */
+.login-right {
+    position: absolute;
+    /* Float on top */
+    right: 10%;
+    /* Position on right side */
+    top: 50%;
+    transform: translateY(-50%);
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 20;
+    /* Above characters and leaves */
+}
+
+/* Title Image */
+.login-title-img {
+    max-width: 550px;
+    margin-bottom: 0;
+    filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.3));
+    animation: floatTitle 3s ease-in-out infinite;
+}
+
+@keyframes floatTitle {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Auth Box - Transparent & Sliding Container */
+.login-page #auth-box {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+    width: 380px;
+    height: 400px;
+    /* Fixed height for absolute children */
+    margin: 0;
+    margin-top: -40px;
+    /* Pull even closer to title */
+    /* Pull closer to title */
+    position: relative;
+    animation: fadeInUp 0.8s ease-out 0.5s backwards;
+    /* Remove overflow: hidden to prevent hard clipping, use opacity for visibility */
+    /* overflow: hidden; */
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sliding Containers - Smoother Depth Transition */
+.auth-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.4s ease;
+    backface-visibility: hidden;
+    /* Performance */
+}
+
+/* Default State (Login Visible) */
+#login-container {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+    z-index: 2;
+}
+
+#register-container {
+    transform: translateX(60px) scale(0.95);
+    /* Slightly right and smaller */
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Register State (Triggered by class on parent) */
+#auth-box.show-register #login-container {
+    transform: translateX(-60px) scale(0.95);
+    /* Slide slightly left and shrink */
+    opacity: 0;
+    pointer-events: none;
+}
+
+#auth-box.show-register #register-container {
+    transform: translateX(0) scale(1);
+    /* Slide in to center */
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Input Styles - Image Based */
+.input-group {
+    width: 100%;
+    margin-bottom: 10px;
+    /* Reduced spacing */
+}
+
+.login-page #auth-form input,
+.login-page #register-form input {
+    width: 100%;
+    height: 50px;
+    /* Fixed height for image */
+    padding: 10px 20px;
+    /* Adjust padding to fit inside image borders */
+
+    /* Image Background */
+    background: url('assets/text_bg_1.png') no-repeat center center;
+    background-size: 100% 100%;
+    border: none;
+    /* Remove default border */
+    background-color: transparent;
+    /* Remove default bg */
+
+    font-size: 16px;
+    color: #333;
+    box-sizing: border-box;
+
+    /* Cursor Fix for Inputs */
+    user-select: text;
+    cursor: text;
+
+    /* Opacity 90% */
+    opacity: 0.9;
+}
+
+.login-page #auth-form input:focus,
+.login-page #register-form input:focus {
+    outline: none;
+    filter: brightness(1.05);
+    opacity: 1;
+    /* Full opacity on focus */
+}
+
+/* Button Group - Enhanced */
+.button-group {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 15px;
+    /* Reduced spacing */
+}
+
+.action-btn {
+    height: 80px;
+    /* Increased size again */
+    width: auto;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    object-fit: contain;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.2));
+}
+
+.action-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    /* Reduced hover movement */
+    filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.25)) brightness(1.05);
+}
+
+.action-btn:active {
+    transform: translateY(1px) scale(0.98);
+    /* Press down */
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2)) brightness(0.9);
+}
+
+/* Register Link */
+.register-hint {
+    margin-top: 10px;
+    /* Reduced spacing */
+    font-size: 14px;
+    color: #666;
+}
+
+.register-link {
+    color: #C0392B;
+    cursor: pointer;
+    text-decoration: underline;
+    margin-left: 5px;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+
+.register-link:hover {
+    color: #000;
+}
+
+/* Floating Leaves (Red Maple) - Full Screen & Diagonal */
+.floating-leaves {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Full width */
+    height: 100%;
+    pointer-events: none;
+    z-index: 7;
+    /* Between Weili (5) and Ziyuan (10) */
+    overflow: hidden;
+}
+
+.leaf {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    background: url('assets/maple_leaf.png') center/contain no-repeat;
+    opacity: 0.9;
+    animation: fallingLeavesDiagonal 10s linear infinite;
+}
+
+/* Diagonal Falling Animation (Left to Right) */
+@keyframes fallingLeavesDiagonal {
+    0% {
+        top: -10%;
+        transform: translateX(0) rotate(0deg);
+        opacity: 0;
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    100% {
+        top: 110%;
+        transform: translateX(40vw) rotate(360deg);
+        /* Drift right by 40% of viewport width */
+        opacity: 0;
+    }
+}
+
+/* Randomize leaf positions (Left 0-100%) and delays */
+.leaf:nth-child(1) {
+    left: 5%;
+    animation-duration: 12s;
+    animation-delay: 0s;
+    transform: scale(0.8);
+}
+
+.leaf:nth-child(2) {
+    left: 20%;
+    animation-duration: 15s;
+    animation-delay: 2s;
+    transform: scale(1.2);
+}
+
+.leaf:nth-child(3) {
+    left: 35%;
+    animation-duration: 10s;
+    animation-delay: 4s;
+    transform: scale(1.0);
+}
+
+.leaf:nth-child(4) {
+    left: 50%;
+    animation-duration: 14s;
+    animation-delay: 1s;
+    transform: scale(0.9);
+}
+
+.leaf:nth-child(5) {
+    left: 65%;
+    animation-duration: 11s;
+    animation-delay: 3s;
+    transform: scale(1.1);
+}
+
+.leaf:nth-child(6) {
+    left: 80%;
+    animation-duration: 13s;
+    animation-delay: 5s;
+    transform: scale(0.7);
+}
+
+.leaf:nth-child(7) {
+    left: 95%;
+    animation-duration: 16s;
+    animation-delay: 6s;
+    transform: scale(1.3);
+}
+
+
+/* Error Messages - Transparent & Centered */
+.error-msg {
+    color: #d9534f;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: bold;
+    min-height: 20px;
+    font-size: 14px;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+/* =========================================
+   Loading Overlay (Speedy Black Gradient)
+   ========================================= */
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#loading-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Extended black gradient - longer fade for full coverage */
+#loading-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -50%;
+    width: 150%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 0%, #000 30%, #000 100%);
+    transform: translateX(100%);
+    transition: transform 0.5s cubic-bezier(0.1, 0.7, 0.1, 1);
+}
+
+#loading-overlay.active::before {
+    transform: translateX(0);
+}
+
+
+.loading-text {
+    position: relative;
+    color: #fff;
+    font-size: 2em;
+    font-style: italic;
+    font-weight: 900;
+    letter-spacing: 2px;
+    z-index: 10;
+    opacity: 0;
+    transform: translateX(50px);
+    transition: all 0.3s ease 0.2s;
+}
+
+#loading-overlay.active .loading-text {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.speed-lines {
+    display: none;
+}
+
+
+/* Character Container - Full Screen for Layering */
+.login-characters {
+    position: absolute;
+    /* Changed from relative */
+    top: 0;
+    left: 0;
+    width: 100%;
+    /* Full width to allow leaves everywhere */
+    height: 100%;
+    pointer-events: none;
+    /* Let clicks pass through to login box */
+    z-index: 5;
+}
+
+/* Golden Flow Effects (Behind Characters) */
+.login-characters::before,
+.login-characters::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    /* Behind images but visible */
+    mix-blend-mode: screen;
+    /* Enhance glow */
+}
+
+/* Left Flow */
+.login-characters::before {
+    width: 300px;
+    height: 500px;
+    bottom: 10%;
+    left: 5%;
+    background: linear-gradient(180deg, transparent 0%, rgba(255, 220, 100, 0.8) 30%, rgba(255, 160, 0, 1) 50%, rgba(255, 220, 100, 0.8) 70%, transparent 100%);
+    filter: blur(20px);
+    animation: goldenFlow1 3s ease-in-out infinite;
+}
+
+/* Right Flow */
+.login-characters::after {
+    width: 250px;
+    height: 450px;
+    bottom: 20%;
+    left: 20%;
+    /* Adjusted for full width */
+    background: linear-gradient(150deg, transparent 0%, rgba(255, 180, 30, 0.7) 30%, rgba(255, 130, 0, 0.8) 50%, rgba(255, 180, 30, 0.7) 70%, transparent 100%);
+    filter: blur(25px);
+    animation: goldenFlow2 4s ease-in-out infinite 0.5s;
+}
+
+@keyframes goldenFlow1 {
+
+    0%,
+    100% {
+        opacity: 0.8;
+        transform: translateY(0) scaleY(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(-20px) scaleY(1.1);
+    }
+}
+
+@keyframes goldenFlow2 {
+
+    0%,
+    100% {
+        opacity: 0.7;
+        transform: translateY(0) scaleY(1) rotate(-5deg);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(-30px) scaleY(1.15) rotate(5deg);
+    }
+}
+
+/* Character Images */
+.login-characters img {
+    max-height: 65vh;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    pointer-events: auto;
+    /* Re-enable clicks on characters if needed */
+}
+
+.char-ziyuan {
+    position: absolute;
+    left: 15%;
+    /* Adjusted for full width */
+    bottom: 8%;
+    z-index: 10;
+    /* Ziyuan always on top */
+    /* Slide in from left, then pulse */
+    animation: slideInLeft 1s ease-out, characterPulseGlow 3s ease-in-out infinite 1s;
+}
+
+.char-weili {
+    position: absolute;
+    /* Changed to absolute */
+    left: 5%;
+    /* Adjusted for full width */
+    bottom: 25%;
+    z-index: 5;
+    /* Weili behind Ziyuan */
+    /* Slide in from right, then pulse */
+    animation: slideInRight 1s ease-out 0.3s backwards, characterPulseGlow 3s ease-in-out infinite 1.3s;
+}
+
+/* Hover Effects */
+.char-ziyuan:hover {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 60px rgba(255, 200, 100, 0.8)) drop-shadow(0 0 100px rgba(255, 150, 50, 0.6));
+}
+
+.char-weili:hover {
+    /* FIXED: Do NOT increase z-index, stay behind Ziyuan */
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 60px rgba(255, 180, 80, 0.8)) drop-shadow(0 0 100px rgba(255, 130, 30, 0.6));
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes characterPulseGlow {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 30px rgba(255, 200, 100, 0.4)) drop-shadow(0 0 60px rgba(255, 150, 50, 0.2));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 50px rgba(255, 200, 100, 0.8)) drop-shadow(0 0 90px rgba(255, 150, 50, 0.5));
+    }
+}
+
+/* =========================================
+   Background Effects (Restored & Enhanced)
+   ========================================= */
+
+/* Dynamic Light Overlay Container */
+body.login-page>.bg-light-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    /* Behind content */
+    overflow: hidden;
+}
+
+/* Rotating Light Rays - Enhanced Visibility */
+body.login-page>.bg-light-overlay>.light-ray {
+    position: absolute;
+    width: 300%;
+    height: 300%;
+    top: -150%;
+    left: -150%;
+    /* Warm Gold Color for Ink Wash Theme */
+    background: conic-gradient(from 0deg at 50% 50%,
+            transparent 0deg,
+            rgba(212, 175, 55, 0.2) 20deg,
+            transparent 40deg,
+            rgba(255, 200, 100, 0.25) 60deg,
+            transparent 80deg,
+            rgba(212, 175, 55, 0.15) 100deg,
+            transparent 120deg,
+            rgba(255, 200, 100, 0.2) 140deg,
+            transparent 160deg,
+            rgba(212, 175, 55, 0.25) 180deg,
+            transparent 200deg,
+            rgba(255, 200, 100, 0.15) 220deg,
+            transparent 240deg,
+            rgba(212, 175, 55, 0.2) 260deg,
+            transparent 280deg,
+            rgba(255, 200, 100, 0.25) 300deg,
+            transparent 320deg,
+            rgba(212, 175, 55, 0.15) 340deg,
+            transparent 360deg);
+    animation: spinRays 20s linear infinite;
+}
+
+/* Pulsing Light Spots - Enhanced Visibility */
+body.login-page>.bg-light-overlay>.light-pulse {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(ellipse 100% 70% at 15% 30%, rgba(212, 175, 55, 0.4) 0%, transparent 50%),
+        radial-gradient(ellipse 80% 60% at 85% 70%, rgba(255, 140, 0, 0.35) 0%, transparent 45%),
+        radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255, 215, 0, 0.25) 0%, transparent 60%);
+    animation: bigPulse 5s ease-in-out infinite;
+}
+
+@keyframes spinRays {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes bigPulse {
+
+    0%,
+    100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+
+/* =========================================
+   Mobile Responsiveness
+   ========================================= */
+
+@media (max-width: 768px) {
+
+    /* Stack layout vertically */
+    .login-page #auth-overlay {
+        flex-direction: column;
+        justify-content: flex-end;
+        /* Push login box to bottom */
+    }
+
+    /* Adjust Characters */
+    .login-characters {
+        position: absolute;
+        width: 100%;
+        height: 50%;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        /* Center characters */
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+    }
+
+    .char-ziyuan {
+        left: 50%;
+        transform: translateX(-20%);
+        bottom: 10%;
+        height: 50vh;
+    }
+
+    .char-weili {
+        left: 50%;
+        transform: translateX(-80%);
+        bottom: 15%;
+        height: 45vh;
+    }
+
+    /* Login Box Centered */
+    .login-right {
+        position: relative;
+        width: 100%;
+        height: auto;
+        /* Allow height to grow */
+        min-height: 50%;
+        /* At least 50% */
+        right: auto;
+        top: auto;
+        transform: none;
+        justify-content: flex-start;
+        padding-top: 20px;
+        z-index: 10;
+        background: linear-gradient(to top, rgba(255, 255, 255, 0.8) 0%, transparent 100%);
+        /* Fade bg */
+    }
+
+    .login-title-img {
+        max-width: 80%;
+        margin-bottom: 20px;
+    }
+
+    .login-page #auth-box {
+        width: 90%;
+        max-width: 350px;
+    }
+
+    /* Adjust button size for mobile */
+    .action-btn {
+        height: 60px;
+    }
 }
