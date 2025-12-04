@@ -255,6 +255,9 @@ public class GameService {
         synchronized (game) {
             validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placeAmbush(game, move);
+            // [NEW] Record Move
+            game.getHistory().add(
+                    new MoveRecord(move.getPlayerId(), "AMBUSH", move.getR(), move.getC(), System.currentTimeMillis()));
 
             boolean p1Done = game.getP1AmbushesPlacedThisRound() == 2;
             boolean p2Done = game.getP2AmbushesPlacedThisRound() == 2;
@@ -280,6 +283,9 @@ public class GameService {
         synchronized (game) {
             validatePlayerIdentity(game, move.getPlayerId(), username);
             gameEngine.placePiece(game, move);
+            // [NEW] Record Move
+            game.getHistory().add(
+                    new MoveRecord(move.getPlayerId(), "PIECE", move.getR(), move.getC(), System.currentTimeMillis()));
 
             if (game.getPhase() == GamePhase.GAME_OVER) {
                 handleGameOver(game);

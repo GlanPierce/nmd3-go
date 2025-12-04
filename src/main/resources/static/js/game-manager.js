@@ -116,9 +116,12 @@ export class GameManager {
         UI.updateGameInfo(state, this.myPlayerId, this.myUsername);
         UI.renderBoard(state.board, this.myPlayerId);
 
-        // Timers
+        // Timers - Sync with server time
         let p1Time = state.p1TimeLeft;
         let p2Time = state.p2TimeLeft;
+
+        // Use performance.now() for high-precision local tracking
+        const lastUpdateTimestamp = performance.now();
 
         const updateTimerDisplay = () => {
             UI.updateTimers(p1Time, p2Time);
@@ -128,11 +131,20 @@ export class GameManager {
 
         if (state.phase !== GamePhase.PRE_GAME && state.phase !== GamePhase.GAME_OVER && (p1Time > 0 || p2Time > 0)) {
             this.localTimerInterval = setInterval(() => {
-                if (p1Time > 0) p1Time -= 1000;
-                if (p2Time > 0) p2Time -= 1000;
-                updateTimerDisplay();
-                if (p1Time <= 0 && p2Time <= 0) clearInterval(this.localTimerInterval);
-            }, 1000);
+                // Calculate elapsed time since last server update
+                const now = performance.now();
+                const elapsed = now - lastUpdateTimestamp;
+
+                // Estimate current remaining time
+                let currentP1Time = p1Time > 0 ? Math.max(0, p1Time - elapsed) : -1;
+                let currentP2Time = p2Time > 0 ? Math.max(0, p2Time - elapsed) : -1;
+
+                UI.updateTimers(currentP1Time, currentP2Time);
+
+                if (currentP1Time <= 0 && currentP2Time <= 0) {
+                    clearInterval(this.localTimerInterval);
+                }
+            }, 100); // Update frequently (100ms) for smooth display, but logic is based on elapsed time
         }
 
         if (state.phase === GamePhase.GAME_OVER) {

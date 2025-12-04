@@ -1,5 +1,5 @@
 import { UI, initUI } from './ui.js';
-import { handleLogin, handleRegister, handleLogout, checkLoginStatus, fetchLeaderboard, fetchActiveGame } from './api.js';
+import { handleLogout, checkLoginStatus, fetchLeaderboard, fetchActiveGame } from './api.js';
 import { connectMasterWebSocket, disconnectMasterWebSocket, initLobby } from './lobby.js';
 import { initGameControls, restoreGame } from './game.js';
 
@@ -8,7 +8,6 @@ import { initGameControls, restoreGame } from './game.js';
  */
 document.addEventListener('DOMContentLoaded', () => {
 
-    // (关键修复)
     // 1. 立即调用 initUI()，填充 UI 对象
     try {
         initUI();
@@ -16,19 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
         alert("UI Init Failed: " + e.message);
         console.error(e);
+        return;
     }
 
-    // 2. 现在 UI 对象已填充，我们可以安全地绑定事件了
-    if (UI.loginForm) {
-        UI.loginForm.addEventListener('submit', (e) => handleLogin(e, onLoginSuccess));
-    } else {
-        console.error("UI.loginForm is missing");
-    }
-
-    if (UI.registerForm) {
-        UI.registerForm.addEventListener('submit', handleRegister);
-    }
-
+    // 2. 绑定登出按钮
     if (UI.logoutBtn) {
         UI.logoutBtn.addEventListener('click', onLogout);
     }
@@ -40,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         UI.refreshLeaderboardBtn.addEventListener('click', fetchLeaderboard);
     }
 
-    // 3. (入口) 检查用户是否已登录
+    // 3. 检查用户是否已登录
     checkLoginStatus(onLoginSuccess, onLoginFail);
 });
 
@@ -50,27 +40,27 @@ document.addEventListener('DOMContentLoaded', () => {
 async function onLoginSuccess(user) {
     console.log("登录成功:", user);
 
-    // 1. 隐藏登录，显示应用
-    if (UI.authOverlay) UI.authOverlay.style.display = 'none';
+    // 显示应用
     if (UI.appRoot) UI.appRoot.style.display = 'flex';
     if (UI.lobbyContainer) UI.lobbyContainer.style.display = 'block';
     if (UI.gameContainer) UI.gameContainer.style.display = 'none';
 
-    // 2. 填充用户信息
+    // 填充用户信息
     if (UI.userInfoUsername) UI.userInfoUsername.textContent = user.username;
     if (UI.userInfoScore) UI.userInfoScore.textContent = user.score;
     if (document.getElementById('user-avatar-small')) {
-        // 如果 user 对象包含 avatar 字段，则使用它，否则使用默认值
         const avatar = user.avatar || 'avatar_1.svg';
         document.getElementById('user-avatar-small').src = `assets/avatars/${avatar}`;
     }
 
-    // 3. (关键修改)
-    // 将 user 对象 (包含 user.id) 传递给 lobby，并等待连接成功
+    // Store username in localStorage for replay viewer
+    localStorage.setItem('username', user.username);
+
+    // 将 user 对象传递给 lobby，并等待连接成功
     try {
         const stompClient = await connectMasterWebSocket(user, onReturnToLobby);
 
-        // 4. (新增) 检查是否有活跃游戏，自动恢复
+        // 检查是否有活跃游戏，自动恢复
         const activeGame = await fetchActiveGame();
         if (activeGame) {
             console.log("发现活跃游戏，正在恢复...", activeGame);
@@ -81,28 +71,31 @@ async function onLoginSuccess(user) {
 
     } catch (error) {
         console.error("连接服务器失败:", error);
-        // 可以选择在这里显示错误提示
     }
 
-    // 5. 自动刷新排行榜
+    // 自动刷新排行榜
     fetchLeaderboard();
 }
 
 /**
- * 登出或登录失败的回调
+ * 登录失败的回调 - 重定向到登录页面
  */
 function onLoginFail() {
-    console.log("未登录，显示登录界面。");
-    if (UI.authOverlay) UI.authOverlay.style.display = 'flex';
-    if (UI.appRoot) UI.appRoot.style.display = 'none';
+    console.log("未登录，重定向到登录页面。");
+    window.location.href = 'login.html';
 }
 
 /**
  * 登出按钮的回调
  */
 function onLogout() {
-    disconnectMasterWebSocket();
-    onLoginFail(); // (修改) 调用 onLoginFail 来显示登录界面
+    handleLogout(() => {
+        disconnectMasterWebSocket();
+        // Clear username from localStorage
+        localStorage.removeItem('username');
+        // Redirect to login page
+        window.location.href = 'login.html';
+    });
 }
 
 /**

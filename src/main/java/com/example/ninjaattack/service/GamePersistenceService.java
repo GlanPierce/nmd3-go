@@ -40,6 +40,30 @@ public class GamePersistenceService {
             entity.setP2Username(game.getP2().getUsername());
             entity.setStatus(game.getPhase() == GamePhase.GAME_OVER ? "FINISHED"
                     : (game.getPhase() == GamePhase.PRE_GAME ? "PRE_GAME" : "IN_PROGRESS"));
+
+            // Populate statistics if game is over
+            if (game.getPhase() == GamePhase.GAME_OVER && game.getResult() != null) {
+                com.example.ninjaattack.model.domain.GameResult res = game.getResult();
+
+                if ("DRAW".equals(res.getWinnerId())) {
+                    entity.setWinnerUsername("DRAW");
+                } else if ("p1".equals(res.getWinnerId())) {
+                    entity.setWinnerUsername(game.getP1().getUsername());
+                } else if ("p2".equals(res.getWinnerId())) {
+                    entity.setWinnerUsername(game.getP2().getUsername());
+                }
+
+                entity.setP1Score(res.getP1PieceCount());
+                entity.setP2Score(res.getP2PieceCount());
+                entity.setTotalRounds(game.getCurrentRound());
+
+                if (entity.getCreatedAt() != null) {
+                    java.time.Duration duration = java.time.Duration.between(entity.getCreatedAt(),
+                            java.time.LocalDateTime.now());
+                    entity.setDurationSeconds(duration.getSeconds());
+                }
+            }
+
             entity.setGameStateJson(objectMapper.writeValueAsString(game));
             gameRepository.save(entity);
         } catch (Exception e) {
@@ -63,6 +87,21 @@ public class GamePersistenceService {
 
     public List<Game> loadActiveGames() {
         List<GameEntity> entities = gameRepository.findByStatus("IN_PROGRESS");
+        List<Game> games = new ArrayList<>();
+        for (GameEntity entity : entities) {
+            try {
+                Game game = objectMapper.readValue(entity.getGameStateJson(), Game.class);
+                games.add(game);
+            } catch (JsonProcessingException e) {
+                System.err.println("Failed to parse game " + entity.getId());
+                e.printStackTrace();
+            }
+        }
+        return games;
+    }
+
+    public List<Game> loadFinishedGames() {
+        List<GameEntity> entities = gameRepository.findByStatus("FINISHED");
         List<Game> games = new ArrayList<>();
         for (GameEntity entity : entities) {
             try {

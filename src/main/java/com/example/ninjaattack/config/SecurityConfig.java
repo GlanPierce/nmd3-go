@@ -20,7 +20,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 @EnableWebSecurity
 public class SecurityConfig {
 
-    // --- 认证相关的 Bean (不变) ---
+    // --- Authentication Beans ---
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -46,19 +46,21 @@ public class SecurityConfig {
     }
 
     /**
-     * 配置 HTTP 安全规则 (SecurityFilterChain)
+     * Configure HTTP Security Rules (SecurityFilterChain)
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, UserService userService) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // 定义哪些 URL 需要/不需要登录
+                // Define which URLs require/don't require login
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                // 静态资源和公共 API 必须放行
+                                // Static resources and public APIs must be allowed
                                 "/",
                                 "/index.html",
+                                "/login.html", // [NEW] Login page
+                                "/login.js", // [NEW] Login script
                                 "/style.css",
                                 "/main.js",
                                 "/api.js",
@@ -67,17 +69,18 @@ public class SecurityConfig {
                                 "/game.js",
                                 "/game-manager.js",
                                 "/constants.js",
+                                "/js/**", // [NEW] All JS files in js folder
                                 "/*.js.map",
                                 "/*.ico",
-                                "/ws/**", // WebSocket 连接握手
-                                "/api/auth/**", // 认证 API
-                                "/api/leaderboard", // 排行榜
-                                "/assets/**" // 静态资源 (头像等)
+                                "/ws/**", // WebSocket connection handshake
+                                "/api/auth/**", // Authentication API
+                                "/api/leaderboard", // Leaderboard
+                                "/assets/**" // Static assets (avatars etc)
                         ).permitAll()
-                        // 其他所有请求都需要登录
+                        // All other requests require login
                         .anyRequest().authenticated())
 
-                // 确保 Session Context (登录状态) 在请求间保持
+                // Ensure Session Context (login state) is maintained across requests
                 .securityContext(context -> context
                         .securityContextRepository(new HttpSessionSecurityContextRepository()))
                 .logout(logout -> logout

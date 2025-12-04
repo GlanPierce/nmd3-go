@@ -1,0 +1,44 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.example:ninja-attack >----------------------
+[INFO] Building ninja-attack 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.3.2:clean (default-clean) @ ninja-attack ---
+[INFO] Deleting D:\Antigravity\projects\nmd3-go\nmd3-go\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ ninja-attack ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 17 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ ninja-attack ---
+[INFO] Changes detected - recompiling the module! :source
+[INFO] Compiling 30 source files with javac [debug release 17] to target\classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[81,5] 非法的类型开始
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[81,15] 需要<标识符>
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[82,2] 需要 class、interface、enum 或 record
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[82,33] 需要 class、interface、enum 或 record
+[INFO] 4 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.801 s
+[INFO] Finished at: 2025-12-03T14:37:47+08:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.11.0:compile (default-compile) on project ninja-attack: Compilation failure: Compilation failure: 
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[81,5] 非法的类型开始
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[81,15] 需要<标识符>
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[82,2] 需要 class、interface、enum 或 record
+[ERROR] /D:/Antigravity/projects/nmd3-go/nmd3-go/src/main/java/com/example/ninjaattack/service/UserService.java:[82,33] 需要 class、interface、enum 或 record
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

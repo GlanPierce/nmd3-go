@@ -30,4 +30,12 @@ public class GameEntity {
 
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    // Statistical Columns
+    private String winnerUsername;
+    private String endReason; // "NORMAL", "TIMEOUT", "RESIGN"
+    private int totalRounds;
+    private int p1Score; // Piece count
+    private int p2Score; // Piece count
+    private long durationSeconds;
 }

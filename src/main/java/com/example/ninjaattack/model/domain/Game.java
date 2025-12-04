@@ -32,6 +32,9 @@ public class Game {
     private String placementRoundStarter;
     private int placementsMadeThisTurn;
 
+    // [NEW] Move History
+    private java.util.List<MoveRecord> history = new java.util.ArrayList<>();
+
     // Timers (Not serializable)
     @JsonIgnore
     private transient ScheduledFuture<?> turnTimer;

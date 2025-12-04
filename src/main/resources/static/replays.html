@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>录像中心 - 忍者棋局</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .replay-list {
+            list-style: none;
+            padding: 0;
+        }
+        .replay-item {
+            background: #fff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .replay-info h4 { margin: 0 0 5px 0; }
+        .replay-info p { margin: 0; color: #666; font-size: 0.9em; }
+        .replay-actions button {
+            padding: 5px 10px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>录像中心</h1>
+            <a href="index.html" class="btn">返回大厅</a>
+        </header>
+
+        <div class="tabs" style="margin-bottom: 20px;">
+            <button id="tab-recent" class="active">最近对局</button>
+            <button id="tab-collection">我的收藏</button>
+        </div>
+
+        <div id="replay-list-container">
+            <p>加载中...</p>
+        </div>
+    </div>
+
+    <script src="js/replay.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            ReplaySystem.initList();
+        });
+    </script>
+</body>
+</html>

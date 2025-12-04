@@ -1,17 +1,8 @@
 export const UI = {};
 
 export function initUI() {
-    // --- Auth ---
-    UI.authOverlay = document.getElementById('auth-overlay');
-    UI.authBox = document.getElementById('auth-box');
+    // --- App Root ---
     UI.appRoot = document.getElementById('app-root');
-    UI.loginForm = document.getElementById('login-form');
-    UI.loginUsernameEl = document.getElementById('login-username');
-    UI.loginPasswordEl = document.getElementById('login-password');
-    UI.registerForm = document.getElementById('register-form');
-    UI.registerUsernameEl = document.getElementById('register-username');
-    UI.registerPasswordEl = document.getElementById('register-password');
-    UI.authStatus = document.getElementById('auth-status');
 
     // --- User Info ---
     UI.userInfoBar = document.getElementById('user-info-bar');
@@ -29,6 +20,16 @@ export function initUI() {
     UI.avatarOptions = document.querySelectorAll('.avatar-option');
     UI.saveAvatarBtn = document.getElementById('save-avatar-btn');
     UI.closeProfileBtn = document.getElementById('close-profile-btn');
+
+    // [NEW] Sidebar Elements
+    UI.tabProfileBtn = document.getElementById('tab-profile-btn');
+    UI.tabHistoryBtn = document.getElementById('tab-history-btn');
+    UI.tabCollectionBtn = document.getElementById('tab-collection-btn');
+    UI.sectionProfile = document.getElementById('section-profile');
+    UI.sectionHistory = document.getElementById('section-history');
+    UI.sectionCollection = document.getElementById('section-collection');
+    UI.historyListContainer = document.getElementById('history-list-container');
+    UI.collectionListContainer = document.getElementById('collection-list-container');
 
     // --- Lobby ---
     UI.lobbyContainer = document.getElementById('lobby-container');

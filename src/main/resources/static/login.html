@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 忍者棋局</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="auth-overlay">
+        <div id="auth-box">
+            <h2>忍者棋局 - 登录 / 注册</h2>
+
+            <form id="login-form">
+                <h3>登录</h3>
+                <input type="text" id="login-username" placeholder="用户名" required>
+                <input type="password" id="login-password" placeholder="密码" required>
+                <button type="submit">登录</button>
+            </form>
+
+            <hr>
+
+            <form id="register-form" novalidate>
+                <h3>注册新账号</h3>
+
+                <input type="text" id="register-username" placeholder="用户名" required minlength="3" maxlength="16"
+                    pattern="^[a-zA-Z0-9_]{3,16}$" title="用户名必须为 3-16 位的字母、数字或下划线。">
+
+                <input type="password" id="register-password" placeholder="密码" required minlength="8"
+                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$"
+                    title="密码必须至少 8 位，且包含至少一个大写字母、一个小写字母和一个数字。">
+
+                <button type="submit">注册</button>
+            </form>
+
+            <p id="auth-status"></p>
+        </div>
+    </div>
+
+    <script src="js/login.js"></script>
+</body>
+
+</html>

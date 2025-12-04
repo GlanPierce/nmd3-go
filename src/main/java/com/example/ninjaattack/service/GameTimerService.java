@@ -17,11 +17,13 @@ public class GameTimerService {
     }
 
     public void scheduleTurnTimer(Game game, String playerId, int seconds, Runnable onTimeout) {
+        // Cancel existing timer first to avoid race conditions
         cancelTurnTimer(game);
 
         long delayMs = seconds * 1000L;
         Date startTime = new Date(System.currentTimeMillis() + delayMs);
 
+        // Schedule new timer
         ScheduledFuture<?> future = taskScheduler.schedule(onTimeout, startTime);
         game.setTurnTimer(future);
 
@@ -44,9 +46,7 @@ public class GameTimerService {
     }
 
     public void scheduleMatchTimer(Game game, int seconds, Runnable onTimeout) {
-        if (game.getMatchTimer() != null) {
-            game.getMatchTimer().cancel(false);
-        }
+        cancelMatchTimer(game);
 
         Date startTime = new Date(System.currentTimeMillis() + seconds * 1000L);
         ScheduledFuture<?> future = taskScheduler.schedule(onTimeout, startTime);
@@ -54,16 +54,23 @@ public class GameTimerService {
     }
 
     public void cancelTurnTimer(Game game) {
+        // Disarm logical timers first
         game.disarmTimer("p1");
         game.disarmTimer("p2");
-        if (game.getTurnTimer() != null && !game.getTurnTimer().isDone()) {
-            game.getTurnTimer().cancel(false);
+
+        // Then cancel the actual scheduled task
+        ScheduledFuture<?> timer = game.getTurnTimer();
+        if (timer != null && !timer.isDone()) {
+            timer.cancel(false);
         }
+        game.setTurnTimer(null);
     }
 
     public void cancelMatchTimer(Game game) {
-        if (game.getMatchTimer() != null && !game.getMatchTimer().isDone()) {
-            game.getMatchTimer().cancel(false);
+        ScheduledFuture<?> timer = game.getMatchTimer();
+        if (timer != null && !timer.isDone()) {
+            timer.cancel(false);
         }
+        game.setMatchTimer(null);
     }
 }

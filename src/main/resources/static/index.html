@@ -10,38 +10,7 @@
 
 <body>
 
-    <div id="auth-overlay">
-        <div id="auth-box">
-            <h2>忍者棋局 - 登录 / 注册</h2>
-
-            <form id="login-form">
-                <h3>登录</h3>
-                <input type="text" id="login-username" placeholder="用户名" required>
-                <input type="password" id="login-password" placeholder="密码" required>
-                <button type="submit">登录</button>
-            </form>
-
-            <hr>
-
-            <form id="register-form" novalidate>
-                <h3>注册新账号</h3>
-
-                <input type="text" id="register-username" placeholder="用户名" required minlength="3" maxlength="16"
-                    pattern="^[a-zA-Z0-9_]{3,16}$" title="用户名必须为 3-16 位的字母、数字或下划线。">
-
-                <input type="password" id="register-password" placeholder="密码" required minlength="8"
-                    pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d\S]{8,}$"
-                    title="密码必须至少 8 位，且包含至少一个大写字母、一个小写字母和一个数字。">
-
-                <button type="submit">注册</button>
-            </form>
-
-            <p id="auth-status"></p>
-        </div>
-    </div>
-
-
-    <div id="app-root" style="display: none;">
+    <div id="app-root">
 
         <div id="user-info-bar">
             <span>
@@ -108,43 +77,72 @@
     </div>
 
     <div id="profile-modal" class="modal" style="display: none;">
-        <div class="modal-content" style="max-width: 600px;">
-            <h2>个人中心</h2>
-            <div style="display: flex; gap: 20px; text-align: left;">
-                <div style="flex: 1;">
-                    <h3>当前头像</h3>
-                    <img id="profile-current-avatar" src="assets/avatars/avatar_1.svg" alt="Current Avatar"
-                        style="width: 100px; height: 100px; border-radius: 50%; display: block; margin: 0 auto;">
-                    <p style="text-align: center; margin-top: 10px;">
-                        <strong id="profile-username">...</strong><br>
-                        Elo: <span id="profile-score">0</span><br>
-                        场次: <span id="profile-games">0</span>
-                    </p>
-                </div>
-                <div style="flex: 2;">
-                    <h3>更换头像</h3>
-                    <div id="avatar-selection"
-                        style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
-                        <img src="assets/avatars/avatar_1.svg" class="avatar-option" data-avatar="avatar_1.svg"
-                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
-                        <img src="assets/avatars/avatar_2.svg" class="avatar-option" data-avatar="avatar_2.svg"
-                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
-                        <img src="assets/avatars/avatar_3.svg" class="avatar-option" data-avatar="avatar_3.svg"
-                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
-                        <img src="assets/avatars/avatar_4.svg" class="avatar-option" data-avatar="avatar_4.svg"
-                            style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+        <div class="modal-content"
+            style="max-width: 800px; display: flex; padding: 0; height: 600px; max-height: 90vh;">
+            <!-- Sidebar -->
+            <div class="profile-sidebar"
+                style="width: 200px; background: #f8f9fa; padding: 20px; border-right: 1px solid #ddd; display: flex; flex-direction: column; gap: 10px;">
+                <h3 style="margin-top: 0;">个人中心</h3>
+                <button id="tab-profile-btn" class="sidebar-btn active"
+                    style="text-align: left; padding: 10px; border: none; background: #e9ecef; cursor: pointer; width: 100%;">个人资料</button>
+                <button id="tab-history-btn" class="sidebar-btn"
+                    style="text-align: left; padding: 10px; border: none; background: transparent; cursor: pointer; width: 100%;">历史记录</button>
+                <button id="tab-collection-btn" class="sidebar-btn"
+                    style="text-align: left; padding: 10px; border: none; background: transparent; cursor: pointer; width: 100%;">对局收藏</button>
+                <div style="flex-grow: 1;"></div>
+                <button id="close-profile-btn"
+                    style="padding: 8px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
+            </div>
+
+            <!-- Content Area -->
+            <div class="profile-main" style="flex: 1; padding: 20px; overflow-y: auto;">
+
+                <!-- Section: Profile -->
+                <div id="section-profile">
+                    <h2>个人资料</h2>
+                    <div style="display: flex; gap: 20px; text-align: left;">
+                        <div style="flex: 1;">
+                            <h3>当前头像</h3>
+                            <img id="profile-current-avatar" src="assets/avatars/avatar_1.svg" alt="Current Avatar"
+                                style="width: 100px; height: 100px; border-radius: 50%; display: block; margin: 0 auto;">
+                            <p style="text-align: center; margin-top: 10px;">
+                                <strong id="profile-username">...</strong><br>
+                                Elo: <span id="profile-score">0</span><br>
+                                场次: <span id="profile-games">0</span>
+                            </p>
+                        </div>
+                        <div style="flex: 2;">
+                            <h3>更换头像</h3>
+                            <div id="avatar-selection"
+                                style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;">
+                                <img src="assets/avatars/avatar_1.svg" class="avatar-option" data-avatar="avatar_1.svg"
+                                    style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                                <img src="assets/avatars/avatar_2.svg" class="avatar-option" data-avatar="avatar_2.svg"
+                                    style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                                <img src="assets/avatars/avatar_3.svg" class="avatar-option" data-avatar="avatar_3.svg"
+                                    style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                                <img src="assets/avatars/avatar_4.svg" class="avatar-option" data-avatar="avatar_4.svg"
+                                    style="width: 60px; height: 60px; border-radius: 50%; cursor: pointer; border: 2px solid transparent;">
+                            </div>
+                            <button id="save-avatar-btn"
+                                style="margin-top: 20px; width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">保存头像</button>
+                        </div>
                     </div>
-                    <button id="save-avatar-btn"
-                        style="margin-top: 20px; width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">保存头像</button>
                 </div>
+
+                <!-- Section: History -->
+                <div id="section-history" style="display: none;">
+                    <h2>历史记录</h2>
+                    <div id="history-list-container">加载中...</div>
+                </div>
+
+                <!-- Section: Collection -->
+                <div id="section-collection" style="display: none;">
+                    <h2>对局收藏</h2>
+                    <div id="collection-list-container">加载中...</div>
+                </div>
+
             </div>
-            <hr style="margin: 20px 0;">
-            <div id="profile-history-section">
-                <h3>历史记录 (开发中)</h3>
-                <p>暂无记录</p>
-            </div>
-            <button id="close-profile-btn"
-                style="margin-top: 20px; padding: 8px 16px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer;">关闭</button>
         </div>
     </div>
 
@@ -162,7 +160,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
 
-    <script src="main.js" type="module"></script>
+    <script src="js/replay.js"></script>
+    <script src="js/main.js" type="module"></script>
 </body>
 
 </html>
