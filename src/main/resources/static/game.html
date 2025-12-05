@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>忍者棋局 - 游戏</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/game.css">
+</head>
+
+<body>
+
+    <div id="app-root">
+
+        <div id="user-info-bar">
+            <span>
+                <img id="user-avatar-small" src="assets/avatars/avatar_1.svg" alt="Avatar"
+                    style="width: 30px; height: 30px; border-radius: 50%; vertical-align: middle; margin-right: 10px;">
+                <strong id="user-info-username">...</strong>
+            </span>
+            <div>
+                <button id="logout-btn">退出游戏</button>
+            </div>
+        </div>
+
+        <div class="game-container" id="game-container">
+            <div class="controls">
+                <button id="refresh-btn">刷新状态(重连)</button>
+                <p><strong>游戏ID:</strong> <span id="game-id">N/A</span></p>
+                <div class="dev-mode">
+                    <input type="checkbox" id="dev-mode-toggle">
+                    <label for="dev-mode-toggle">开发者模式 (显示所有伏兵)</label>
+                </div>
+                <p><strong>你的身份:</strong> <span id="my-identity">N/A</span></p>
+            </div>
+            <div id="game-info">
+                <div id="status-message">等待连接...</div>
+                <div class="player-stats">
+                    <div class="stat p1">
+                        <strong>P1: <span id="p1-name">...</span></strong>
+                        <span>额外落子: <span id="p1-extra">0</span></span>
+                        <span class="timer">时间: <span id="p1-timer">--</span>s</span>
+                    </div>
+                    <div class="stat p2">
+                        <strong>P2: <span id="p2-name">...</span></strong>
+                        <span>额外落子: <span id="p2-extra">0</span></span>
+                        <span class="timer">时间: <span id="p2-timer">--</span>s</span>
+                    </div>
+                </div>
+            </div>
+            <div id="board" class="board-grid"></div>
+
+            <div id="game-over-modal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <h2>游戏结束!</h2>
+                    <p id="winner-message"></p>
+                    <p>P1: <span id="p1-result"></span></p>
+                    <p>P2: <span id="p2-result"></span></p>
+                    <button id="play-again-btn">返回大厅</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script src="js/replay.js"></script>
+    <script src="js/entries/game.js" type="module"></script>
+</body>
+
+</html>

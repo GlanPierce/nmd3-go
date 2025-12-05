@@ -27,7 +27,8 @@ async function login(username, password) {
             localStorage.setItem('username', user.username);
 
             // Redirect to main page (keep overlay active)
-            window.location.href = 'index.html';
+            // Redirect to lobby page (keep overlay active)
+            window.location.href = 'lobby.html';
         } else {
             // Hide overlay on error
             if (loadingOverlay) {

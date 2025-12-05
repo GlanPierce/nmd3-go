@@ -59,26 +59,29 @@ public class SecurityConfig {
                                 // Static resources and public APIs must be allowed
                                 "/",
                                 "/index.html",
-                                "/login.html", // [NEW] Login page
-                                "/login.js", // [NEW] Login script
-                                "/style.css",
-                                "/main.js",
-                                "/api.js",
-                                "/ui.js",
-                                "/lobby.js",
-                                "/game.js",
-                                "/game-manager.js",
-                                "/constants.js",
-                                "/js/**", // [NEW] All JS files in js folder
-                                "/*.js.map",
+                                "/login.html",
+                                "/login.js",
+                                "/css/**",
+                                "/js/**",
+                                "/assets/**",
+                                "/ws/**",
+                                "/api/auth/**",
+                                "/api/leaderboard",
                                 "/*.ico",
-                                "/ws/**", // WebSocket connection handshake
-                                "/api/auth/**", // Authentication API
-                                "/api/leaderboard", // Leaderboard
-                                "/assets/**" // Static assets (avatars etc)
-                        ).permitAll()
+                                "/*.js.map")
+                        .permitAll()
                         // All other requests require login
                         .anyRequest().authenticated())
+
+                // Exception handling for unauthenticated access
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            if ("XMLHttpRequest".equals(request.getHeader("X-Requested-With"))) {
+                                response.sendError(401, "Unauthorized");
+                            } else {
+                                response.sendRedirect("/login.html");
+                            }
+                        }))
 
                 // Ensure Session Context (login state) is maintained across requests
                 .securityContext(context -> context

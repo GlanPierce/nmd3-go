@@ -1,5 +1,5 @@
-import { UI } from './ui.js';
-import { initGame } from './game.js';
+import { UI } from '../core/ui.js';
+import { initGame } from './game-setup.js';
 
 let stompClient = null;
 let currentUserId = null;
@@ -28,20 +28,19 @@ export function connectMasterWebSocket(user, onLobbyReturnCallback) {
             console.log("正在订阅私人队列: " + privateQueue);
 
             stompClient.subscribe(privateQueue, (message) => {
-                const matchResult = JSON.parse(message.body);
-                UI.lobbyContainer.style.display = 'none';
-                initGame(stompClient, matchResult, onLobbyReturnCallback);
+                console.log("Match found! Redirecting to game...");
+                window.location.href = 'game.html';
             });
 
-            UI.lobbyStatus.textContent = "已连接到服务器，请寻找对战。";
-            UI.findMatchBtn.disabled = false;
+            if (UI.lobbyStatus) UI.lobbyStatus.textContent = "已连接到服务器，请寻找对战。";
+            if (UI.findMatchBtn) UI.findMatchBtn.disabled = false;
 
             resolve(stompClient);
 
         }, (error) => {
             console.error('WebSocket 连接失败:', error);
-            UI.lobbyStatus.textContent = "连接服务器失败，请刷新页面重试。";
-            UI.findMatchBtn.disabled = true;
+            if (UI.lobbyStatus) UI.lobbyStatus.textContent = "连接服务器失败，请刷新页面重试。";
+            if (UI.findMatchBtn) UI.findMatchBtn.disabled = true;
             reject(error);
         });
     });

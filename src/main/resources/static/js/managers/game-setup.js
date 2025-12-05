@@ -1,5 +1,5 @@
 import { GameManager } from './game-manager.js';
-import { UI } from './ui.js';
+import { UI } from '../core/ui.js';
 
 const gameManager = new GameManager();
 

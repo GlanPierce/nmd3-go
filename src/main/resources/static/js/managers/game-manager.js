@@ -1,5 +1,5 @@
-import { UI } from './ui.js';
-import { PLAYER_1, PLAYER_2, GamePhase, API_ENDPOINTS } from './constants.js';
+import { UI } from '../core/ui.js';
+import { PLAYER_1, PLAYER_2, GamePhase, API_ENDPOINTS } from '../core/constants.js';
 
 export class GameManager {
     constructor() {

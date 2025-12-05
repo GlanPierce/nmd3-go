@@ -5,17 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>登录 - 忍者棋局</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/login.css">
 </head>
 
 <body class="login-page">
-    <!-- Speedy Black Loading Overlay -->
-    <div id="loading-overlay">
-        <div class="speed-lines"></div>
-        <div class="loading-text">CONNECTING...</div>
-    </div>
 
-    <!-- Dynamic Light Overlay -->
+    <!-- Background Lighting Effects -->
     <div class="bg-light-overlay">
         <div class="light-ray"></div>
         <div class="light-pulse"></div>
@@ -100,7 +96,11 @@
         </div>
     </div>
 
-    <script src="js/login.js"></script>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay">
+    </div>
+
+    <script src="js/entries/login.js?v=3"></script>
     <script>
         // Toggle Auth Mode (Slide Effect)
         function toggleAuthMode(mode) {

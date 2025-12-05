@@ -1,0 +1,119 @@
+/* 匹配大厅 */
+.lobby-container {
+    padding: 20px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 60px;
+    width: 300px;
+}
+
+.lobby-container button {
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.lobby-container button:hover {
+    background-color: #0056b3;
+}
+
+/* 排行榜容器 */
+.leaderboard-container {
+    width: 300px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    margin-top: 60px;
+}
+
+.leaderboard-container h2 {
+    margin-top: 0;
+}
+
+/* 历史记录区域样式 */
+#profile-history-section {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 10px;
+    background-color: #f9f9f9;
+}
+
+/* --- 特定弹窗样式 --- */
+#match-found-modal .modal-content {
+    background-color: #fff;
+    border: 3px solid #28a745;
+    max-width: 350px;
+    /* 让它比游戏结束弹窗略窄 */
+}
+
+#match-found-modal #match-opponent-name {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+#match-found-modal #match-confirm-timer {
+    color: #d9534f;
+    font-size: 1.5em;
+}
+
+#match-found-modal #match-ready-btn {
+    padding: 12px 25px;
+    font-size: 1.2em;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#match-found-modal #match-ready-btn:hover {
+    background-color: #1e7e34;
+}
+
+#match-found-modal #match-ready-btn:disabled {
+    background-color: #999;
+}
+
+/* --- 其他辅助样式 --- */
+#leaderboard-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#leaderboard-list li {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+}
+
+#leaderboard-list li:last-child {
+    border-bottom: none;
+}
+
+#leaderboard-list li span:last-child {
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* (新增) 修复弹窗宽度跳变 */
+#match-found-modal #match-status-message {
+    /* 预留足够的空间显示最长的消息（例如：'玩家 p1 已准备!'） */
+    min-width: 200px;
+    height: 1.2em;
+    /* 确保高度固定 */
+    display: block;
+    /* 保证 min-width 生效 */
+    margin-top: 10px;
+}
